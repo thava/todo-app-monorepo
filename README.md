@@ -56,7 +56,7 @@ docker-compose ps
 This will start:
 - **PostgreSQL** on `localhost:5432`
 - **pgAdmin** (web UI) on `http://localhost:5050`
-  - Email: `admin@todo.local`
+  - Email: `admin@example.com`
   - Password: `admin`
 
 ### 3. Environment Variables
