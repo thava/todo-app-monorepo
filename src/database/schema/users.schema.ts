@@ -11,7 +11,6 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   fullName: varchar('full_name', { length: 255 }).notNull(),
   passwordHashPrimary: text('password_hash_primary').notNull(),
-  passwordReversibleDev: text('password_reversible_dev'),
   role: roleEnum('role').notNull().default('guest'),
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

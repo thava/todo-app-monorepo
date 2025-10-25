@@ -106,14 +106,6 @@ export class EnvironmentVariables {
   @IsString()
   REDIS_URL?: string;
 
-  // Dev Only
-  @IsBoolean()
-  ENABLE_DEV_REVERSIBLE_PASSWORDS: boolean = false;
-
-  @IsOptional()
-  @IsString()
-  DEV_REVERSIBLE_PASSWORD_KEY?: string;
-
   // Monitoring
   @IsBoolean()
   ENABLE_METRICS: boolean = false;

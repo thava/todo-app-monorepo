@@ -275,7 +275,6 @@ See `.env.example` for all available configuration options.
 
 - `PORT`: Server port (default: 3000)
 - `CORS_ALLOWED_ORIGINS`: Comma-separated allowed origins
-- `ENABLE_DEV_REVERSIBLE_PASSWORDS`: Dev-only reversible password encryption
 - `LOG_LEVEL`: Logging level (error, warn, info, debug)
 
 ## Security Features

@@ -25,7 +25,7 @@ export class UsersService {
     }
 
     // Remove sensitive fields
-    const { passwordHashPrimary, passwordReversibleDev, ...safeUser } = user;
+    const { passwordHashPrimary, ...safeUser } = user;
     return safeUser;
   }
 
@@ -42,7 +42,7 @@ export class UsersService {
     }
 
     // Remove sensitive fields
-    const { passwordHashPrimary, passwordReversibleDev, ...safeUser } = user;
+    const { passwordHashPrimary, ...safeUser } = user;
     return safeUser;
   }
 
@@ -71,8 +71,7 @@ export class UsersService {
     }
 
     // Remove sensitive fields
-    const { passwordHashPrimary, passwordReversibleDev, ...safeUser } =
-      updatedUser;
+    const { passwordHashPrimary, ...safeUser } = updatedUser;
     return safeUser;
   }
 }

@@ -34,11 +34,6 @@ export default () => ({
   rateLimit: {
     redisUrl: process.env.REDIS_URL,
   },
-  dev: {
-    enableReversiblePasswords:
-      process.env.ENABLE_DEV_REVERSIBLE_PASSWORDS === 'true',
-    reversiblePasswordKey: process.env.DEV_REVERSIBLE_PASSWORD_KEY,
-  },
   monitoring: {
     enableMetrics: process.env.ENABLE_METRICS === 'true',
     metricsAuthToken: process.env.METRICS_AUTH_TOKEN,

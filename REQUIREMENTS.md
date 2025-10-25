@@ -76,37 +76,14 @@ A production-ready backend providing **user authentication, authorization, and C
 
 ### **2.4 Password Storage**
 
-| Type | Purpose | Algorithm |
-|------|---------|-----------|
-| Primary password hash | **Authentication** | **Argon2id** (time=2, memory=19456, parallelism=1) |
-| Reversible password (dev only) | Debugging convenience | AES-256-GCM encrypted, stored in `password_reversible_dev` column |
+**Password Hashing:**
+- **Argon2id** (time=2, memory=19456, parallelism=1)
 
 **Password Policy:**
 - Minimum 8 characters
 - Must contain at least 3 of: uppercase, lowercase, number, special character
 - Blacklist common passwords (top 1000)
 - Cannot be same as email
-
-**Reversible Password Rules:**
-- Only enabled when:
-  ```env
-  NODE_ENV=development
-  ENABLE_DEV_REVERSIBLE_PASSWORDS=true
-  DEV_REVERSIBLE_PASSWORD_KEY=<base64-encoded-32-byte-key>
-  ```
-- Column is **always NULL in test & prod** (enforced by migration)
-- Encryption: AES-256-GCM with random IV per password
-
-### **2.5 Dev-Only Password Retrieval Script**
-
-```bash
-./scripts/get-password.ts <email>
-```
-
-- Input: user email
-- Output: decrypted password (stdout)
-- Exits with error if not in development mode or missing encryption key
-- Logs access to audit log
 
 ---
 
@@ -120,7 +97,6 @@ A production-ready backend providing **user authentication, authorization, and C
 | email | VARCHAR(255) | UNIQUE, NOT NULL | Lowercase, trimmed |
 | full_name | VARCHAR(255) | NOT NULL | Display name |
 | password_hash_primary | TEXT | NOT NULL | Argon2id hash |
-| password_reversible_dev | TEXT | NULLABLE | AES-GCM encrypted, dev only |
 | role | ENUM | NOT NULL, DEFAULT 'guest' | 'guest', 'admin', 'sysadmin' |
 | email_verified_at | TIMESTAMPTZ | NULLABLE | NULL = unverified |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | |
@@ -921,10 +897,6 @@ REDIS_URL=redis://localhost:6379
 ### **13.2 Optional Variables**
 
 ```env
-# Dev Only
-ENABLE_DEV_REVERSIBLE_PASSWORDS=true
-DEV_REVERSIBLE_PASSWORD_KEY=<base64-encoded-32-byte-key>
-
 # Monitoring
 ENABLE_METRICS=true
 METRICS_AUTH_TOKEN=<optional-bearer-token>
@@ -976,16 +948,15 @@ To add new feature modules:
 
 ## **Summary of Key Decisions**
 
-✅ **localStorage for refresh tokens** (simpler than cookies for cross-domain)  
-✅ **Argon2id** for password hashing  
-✅ **Refresh token rotation** for security  
-✅ **Drizzle ORM** with versioned migrations  
-✅ **Dual API exposure** (REST + GraphQL)  
-✅ **RBAC with ownership checks**  
-✅ **Comprehensive audit logging**  
-✅ **Rate limiting** on critical endpoints  
-✅ **Email verification required** before login  
-✅ **Dev-only reversible passwords** for debugging  
-✅ **Prometheus metrics** for monitoring  
-✅ **Structured JSON logging**  
+✅ **localStorage for refresh tokens** (simpler than cookies for cross-domain)
+✅ **Argon2id** for password hashing
+✅ **Refresh token rotation** for security
+✅ **Drizzle ORM** with versioned migrations
+✅ **Dual API exposure** (REST + GraphQL)
+✅ **RBAC with ownership checks**
+✅ **Comprehensive audit logging**
+✅ **Rate limiting** on critical endpoints
+✅ **Email verification required** before login
+✅ **Prometheus metrics** for monitoring
+✅ **Structured JSON logging**
 ✅ **Manual approval for test/prod deployments**  
