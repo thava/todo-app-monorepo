@@ -483,45 +483,43 @@ readiness_check() {
 
 # Show help
 show_help() {
-  cat <<EOF
-${BLUE}Todo NestJS API - Dev Utilities${NC}
-
-${GREEN}Configuration:${NC}
-  API_URL=${API_URL}
-  TOKEN_FILE=${TOKEN_FILE}
-
-${GREEN}Authentication:${NC}
-  register_user <email> <password> <full_name>  - Register a new user
-  login_user <email> <password>                  - Login and save tokens
-  refresh_token                                  - Refresh access token
-  logout_user                                    - Logout and clear tokens
-  get_profile                                    - Get current user profile
-
-${GREEN}Todo Operations:${NC}
-  create_todo <description> [priority] [due_date] - Create a new todo
-  list_todos                                      - List all todos
-  get_todo <todo_id>                              - Get a specific todo
-  update_todo <todo_id> [desc] [priority] [date]  - Update a todo
-  delete_todo <todo_id>                           - Delete a todo
-
-${GREEN}Health:${NC}
-  health_check                                    - Check API health
-  readiness_check                                 - Check API readiness
-
-${GREEN}Token Management:${NC}
-  load_tokens                                     - Load tokens from file
-  clear_tokens                                    - Delete token file
-
-${GREEN}Examples:${NC}
-  source scripts/dev-utils.sh
-  register_user "test@example.com" "password123" "Test User"
-  login_user "test@example.com" "password123"
-  create_todo "Buy groceries" "high" "2025-12-31"
-  list_todos
-  delete_todo <todo_id>
-
-${YELLOW}Note: jq is recommended for better JSON parsing${NC}
-EOF
+  echo -e "${BLUE}Todo NestJS API - Dev Utilities${NC}"
+  echo ""
+  echo -e "${GREEN}Configuration:${NC}"
+  echo "  API_URL=${API_URL}"
+  echo "  TOKEN_FILE=${TOKEN_FILE}"
+  echo ""
+  echo -e "${GREEN}Authentication:${NC}"
+  echo "  register_user <email> <password> <full_name>  - Register a new user"
+  echo "  login_user <email> <password>                  - Login and save tokens"
+  echo "  refresh_token                                  - Refresh access token"
+  echo "  logout_user                                    - Logout and clear tokens"
+  echo "  get_profile                                    - Get current user profile"
+  echo ""
+  echo -e "${GREEN}Todo Operations:${NC}"
+  echo "  create_todo <description> [priority] [due_date] - Create a new todo"
+  echo "  list_todos                                      - List all todos"
+  echo "  get_todo <todo_id>                              - Get a specific todo"
+  echo "  update_todo <todo_id> [desc] [priority] [date]  - Update a todo"
+  echo "  delete_todo <todo_id>                           - Delete a todo"
+  echo ""
+  echo -e "${GREEN}Health:${NC}"
+  echo "  health_check                                    - Check API health"
+  echo "  readiness_check                                 - Check API readiness"
+  echo ""
+  echo -e "${GREEN}Token Management:${NC}"
+  echo "  load_tokens                                     - Load tokens from file"
+  echo "  clear_tokens                                    - Delete token file"
+  echo ""
+  echo -e "${GREEN}Examples:${NC}"
+  echo "  source scripts/dev-utils.sh"
+  echo "  register_user \"test@example.com\" \"password123\" \"Test User\""
+  echo "  login_user \"test@example.com\" \"password123\""
+  echo "  create_todo \"Buy groceries\" \"high\" \"2025-12-31\""
+  echo "  list_todos"
+  echo "  delete_todo <todo_id>"
+  echo ""
+  echo -e "${YELLOW}Note: jq is recommended for better JSON parsing${NC}"
 }
 
 # Print help if sourced

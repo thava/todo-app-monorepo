@@ -8,6 +8,7 @@ import configuration from './common/config/configuration';
 import { validate } from './common/config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { EmailModule } from './modules/email/email.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { TodosModule } from './modules/todos/todos.module';
@@ -22,6 +23,7 @@ import { HealthModule } from './common/health/health.module';
       envFilePath: ['.env.local', '.env'],
     }),
     DatabaseModule,
+    EmailModule,
     AuditModule,
     AuthModule,
     UsersModule,
