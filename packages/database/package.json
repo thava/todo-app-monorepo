@@ -1,0 +1,20 @@
+{
+  "name": "@todo-app/database",
+  "version": "0.0.1",
+  "description": "Shared database schemas and types",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.44.7",
+    "drizzle-zod": "^0.8.3",
+    "postgres": "^3.4.7",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
