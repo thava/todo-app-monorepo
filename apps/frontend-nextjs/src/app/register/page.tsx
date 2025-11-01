@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +30,7 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(email, password, fullName);
+      await register(email, password, fullName, rememberMe);
       router.push('/dashboard/todos');
     } catch (err: any) {
       setError(err?.message || 'Registration failed. Please try again.');
@@ -110,6 +111,19 @@ export default function RegisterPage() {
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="••••••••"
               />
+            </div>
+
+            <div className="flex items-center">
+              <input
+                id="rememberMe"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-primary-600 focus:ring-primary-500"
+              />
+              <label htmlFor="rememberMe" className="ml-2 text-sm text-foreground">
+                Remember me
+              </label>
             </div>
 
             <button

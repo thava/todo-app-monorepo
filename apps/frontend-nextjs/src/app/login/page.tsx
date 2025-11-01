@@ -10,6 +10,7 @@ export default function LoginPage() {
   const { login, isLoading } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,7 +18,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await login(email, password);
+      await login(email, password, rememberMe);
       router.push('/dashboard/todos');
     } catch (err: any) {
       setError(err?.message || 'Login failed. Please check your credentials.');
@@ -68,6 +69,19 @@ export default function LoginPage() {
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="••••••••"
               />
+            </div>
+
+            <div className="flex items-center">
+              <input
+                id="rememberMe"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-primary-600 focus:ring-primary-500"
+              />
+              <label htmlFor="rememberMe" className="ml-2 text-sm text-foreground">
+                Remember me
+              </label>
             </div>
 
             <button

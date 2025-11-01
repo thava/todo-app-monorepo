@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { api } from './api';
 
 interface User {
@@ -18,16 +18,61 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  rememberMe: boolean;
+  _hasHydrated: boolean;
 
   // Actions
-  setAuth: (user: User, accessToken: string, refreshToken: string) => void;
+  setAuth: (user: User, accessToken: string, refreshToken: string, rememberMe?: boolean) => void;
   clearAuth: () => void;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe: boolean) => Promise<void>;
+  register: (email: string, password: string, fullName: string, rememberMe: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refreshAccessToken: () => Promise<void>;
   loadUser: () => Promise<void>;
+  setRememberMe: (remember: boolean) => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
 }
+
+// Custom storage that dynamically selects localStorage or sessionStorage based on rememberMe
+const dynamicStorage = {
+  getItem: (name: string): string | null => {
+    if (typeof window === 'undefined') return null;
+
+    // Check both storages and return whichever has data
+    const localData = localStorage.getItem(name);
+    const sessionData = sessionStorage.getItem(name);
+
+    return localData || sessionData;
+  },
+  setItem: (name: string, value: string): void => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      // Parse to check rememberMe flag
+      const parsed = JSON.parse(value);
+      const rememberMe = parsed.state?.rememberMe ?? true;
+
+      // Store in the appropriate location
+      if (rememberMe) {
+        sessionStorage.removeItem(name);
+        localStorage.setItem(name, value);
+      } else {
+        localStorage.removeItem(name);
+        sessionStorage.setItem(name, value);
+      }
+    } catch (error) {
+      // Fallback to localStorage if parsing fails
+      localStorage.setItem(name, value);
+    }
+  },
+  removeItem: (name: string): void => {
+    if (typeof window === 'undefined') return;
+
+    // Remove from both storages
+    localStorage.removeItem(name);
+    sessionStorage.removeItem(name);
+  },
+};
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -37,17 +82,33 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
+      rememberMe: true, // Default to true
+      _hasHydrated: false,
 
-      setAuth: (user, accessToken, refreshToken) => {
+      setHasHydrated: (hasHydrated) => {
+        set({ _hasHydrated: hasHydrated });
+      },
+
+      setAuth: (user, accessToken, refreshToken, rememberMe = true) => {
         set({
           user,
           accessToken,
           refreshToken,
           isAuthenticated: true,
+          rememberMe,
         });
       },
 
+      setRememberMe: (remember) => {
+        set({ rememberMe: remember });
+      },
+
       clearAuth: () => {
+        // Clear from both storages
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth-storage');
+          sessionStorage.removeItem('auth-storage');
+        }
         set({
           user: null,
           accessToken: null,
@@ -56,11 +117,11 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      login: async (email: string, password: string) => {
+      login: async (email: string, password: string, rememberMe: boolean) => {
         set({ isLoading: true });
         try {
           const response = await api.login(email, password);
-          get().setAuth(response.user, response.accessToken, response.refreshToken);
+          get().setAuth(response.user, response.accessToken, response.refreshToken, rememberMe);
         } catch (error) {
           throw error;
         } finally {
@@ -68,11 +129,11 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (email: string, password: string, fullName: string) => {
+      register: async (email: string, password: string, fullName: string, rememberMe: boolean) => {
         set({ isLoading: true });
         try {
           const response = await api.register(email, password, fullName);
-          get().setAuth(response.user, response.accessToken, response.refreshToken);
+          get().setAuth(response.user, response.accessToken, response.refreshToken, rememberMe);
         } catch (error) {
           throw error;
         } finally {
@@ -113,23 +174,43 @@ export const useAuthStore = create<AuthState>()(
 
       loadUser: async () => {
         const { accessToken, refreshToken } = get();
-        if (!accessToken || !refreshToken) {
+
+        // If no refresh token, can't restore session
+        if (!refreshToken) {
           return;
         }
 
         set({ isLoading: true });
+
         try {
-          const user = await api.getProfile(accessToken) as User;
-          set({ user, isAuthenticated: true });
+          // If we have an access token, try using it first
+          if (accessToken) {
+            const user = await api.getProfile(accessToken) as User;
+            set({ user, isAuthenticated: true });
+            return;
+          }
+
+          // No access token, use refresh token to get a new one
+          await get().refreshAccessToken();
+          const newAccessToken = get().accessToken;
+
+          if (newAccessToken) {
+            const user = await api.getProfile(newAccessToken) as User;
+            set({ user, isAuthenticated: true });
+          } else {
+            get().clearAuth();
+          }
         } catch (error) {
           console.error('Load user error:', error);
-          // Try to refresh token
+          // Try to refresh token as fallback
           try {
             await get().refreshAccessToken();
             const newAccessToken = get().accessToken;
             if (newAccessToken) {
               const user = await api.getProfile(newAccessToken) as User;
               set({ user, isAuthenticated: true });
+            } else {
+              get().clearAuth();
             }
           } catch (refreshError) {
             console.error('Token refresh failed:', refreshError);
@@ -142,9 +223,15 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
+      storage: createJSONStorage(() => dynamicStorage),
       partialize: (state) => ({
+        user: state.user,
         refreshToken: state.refreshToken,
+        rememberMe: state.rememberMe,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
