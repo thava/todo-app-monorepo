@@ -1,0 +1,8 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { TodosPage } from '../../components/pages/TodosPage';
+---
+
+<DashboardLayout title="My Todos - TodoGizmo">
+  <TodosPage client:load />
+</DashboardLayout>

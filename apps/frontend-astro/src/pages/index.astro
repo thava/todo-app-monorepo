@@ -1,0 +1,69 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="TodoGizmo - Beautiful Task Management">
+  <div class="min-h-[calc(100vh-4rem)] bg-background">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-20 max-w-7xl">
+      {/* Hero Section */}
+      <div class="text-center mb-16">
+        <h1 class="text-6xl font-bold text-foreground mb-6">
+          Welcome to <span class="text-primary-600">TodoGizmo</span>
+        </h1>
+        <p class="text-2xl text-muted mb-8 max-w-2xl mx-auto">
+          Your trusted companion for task management and productivity.
+          Simple, beautiful, and powerful.
+        </p>
+        <div class="flex gap-4 justify-center flex-wrap">
+          <a
+            href="/register"
+            class="px-8 py-3 text-lg font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors shadow-sm no-underline"
+          >
+            Get Started Free
+          </a>
+          <a
+            href="/about"
+            class="px-8 py-3 text-lg font-medium text-foreground bg-surface-primary hover:bg-surface-secondary border border-border rounded-lg transition-colors no-underline"
+          >
+            Learn More
+          </a>
+        </div>
+      </div>
+
+      {/* Features Grid */}
+      <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div class="bg-surface-primary rounded-xl shadow-md border border-border p-6 text-center">
+          <div class="text-4xl mb-4">🎯</div>
+          <h3 class="text-xl font-semibold text-foreground mb-2">Simple & Intuitive</h3>
+          <p class="text-muted">
+            Create and manage tasks with just a few clicks. No learning curve required.
+          </p>
+        </div>
+
+        <div class="bg-surface-primary rounded-xl shadow-md border border-border p-6 text-center">
+          <div class="text-4xl mb-4">🎨</div>
+          <h3 class="text-xl font-semibold text-foreground mb-2">Beautiful Design</h3>
+          <p class="text-muted">
+            Clean interface with light and dark themes that adapt to your preferences.
+          </p>
+        </div>
+
+        <div class="bg-surface-primary rounded-xl shadow-md border border-border p-6 text-center">
+          <div class="text-4xl mb-4">⚡</div>
+          <h3 class="text-xl font-semibold text-foreground mb-2">Lightning Fast</h3>
+          <p class="text-muted">
+            Built with modern tech for instant responses and smooth interactions.
+          </p>
+        </div>
+      </div>
+
+      {/* Status Section */}
+      <div class="mt-16 text-center">
+        <div class="inline-flex items-center gap-3 px-6 py-3 bg-primary-600 text-white rounded-lg shadow-lg">
+          <span class="text-2xl">✓</span>
+          <span class="font-medium">Astro Frontend Ready</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</MainLayout>

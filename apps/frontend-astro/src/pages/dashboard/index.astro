@@ -1,0 +1,12 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Dashboard - TodoGizmo">
+  <div class="text-center py-12 text-muted">Loading...</div>
+</DashboardLayout>
+
+<script>
+  // Client-side redirect to avoid showing "Redirecting..." message
+  window.location.replace('/dashboard/todos');
+</script>
