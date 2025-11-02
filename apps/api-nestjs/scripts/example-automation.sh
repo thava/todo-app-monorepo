@@ -8,6 +8,8 @@ set -e  # Exit on error
 # Source the utilities
 source "$(dirname "$0")/dev-utils.sh"
 
+todo_demo() {
+
 echo ""
 echo "======================================"
 echo "  Todo API - Example Automation"
@@ -81,6 +83,25 @@ logout_user
 
 echo ""
 echo "======================================"
-echo "  Automation completed successfully!"
+echo "  ToDo Automation completed successfully!"
 echo "======================================"
 echo ""
+}
+
+admin_demo() {
+
+  # register_user sysadmin3@example.com  'Sysadmin2@###' 'SysAdmin Third'
+  pnpx tsx scripts/utils.ts admin:users  # List all users
+  #                         admin:users:get user-id  
+  #                         admin:users:update user-id  
+  #                                 --email  xyz@example.com 
+  #                                 --password  ...
+  #                                 --fullName  ...
+  #                                 --role=guest|admin|sysadmin
+  #                        --emailVerifiedAt ''|null|now|date-string
+  #           admin:users:delete <user_id>   
+}
+
+# todo_demo
+# admin_demo
+

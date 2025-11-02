@@ -74,6 +74,16 @@ interface Todo {
   updatedAt: string;
 }
 
+interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  role: string;
+  emailVerifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Helper functions
 function printSuccess(message: string): void {
   console.log(`${colors.green}✓ ${message}${colors.reset}`);
@@ -413,6 +423,87 @@ async function readinessCheck(): Promise<void> {
   }
 }
 
+// Admin user management commands
+
+async function adminListUsers(): Promise<void> {
+  printInfo('Fetching all users (admin)');
+
+  const { status, data } = await apiRequest<User[]>('/admin/users', {
+    useAuth: true,
+  });
+
+  if (status === 200 && data) {
+    printSuccess(`Found ${data.length} users`);
+    printJson(data);
+  } else {
+    printError(`Failed to get users (HTTP ${status})`);
+    if (data) printJson(data);
+    process.exit(1);
+  }
+}
+
+async function adminGetUser(userId: string): Promise<void> {
+  printInfo(`Fetching user: ${userId}`);
+
+  const { status, data } = await apiRequest<User>(`/admin/users/${userId}`, {
+    useAuth: true,
+  });
+
+  if (status === 200 && data) {
+    printSuccess('User retrieved');
+    printJson(data);
+  } else {
+    printError(`Failed to get user (HTTP ${status})`);
+    if (data) printJson(data);
+    process.exit(1);
+  }
+}
+
+async function adminUpdateUser(
+  userId: string,
+  updates: {
+    email?: string;
+    password?: string;
+    fullName?: string;
+    role?: string;
+    emailVerifiedAt?: string;
+  }
+): Promise<void> {
+  printInfo(`Updating user: ${userId}`);
+
+  const { status, data } = await apiRequest<User>(`/admin/users/${userId}`, {
+    method: 'PATCH',
+    body: updates,
+    useAuth: true,
+  });
+
+  if (status === 200 && data) {
+    printSuccess('User updated');
+    printJson(data);
+  } else {
+    printError(`Failed to update user (HTTP ${status})`);
+    if (data) printJson(data);
+    process.exit(1);
+  }
+}
+
+async function adminDeleteUser(userId: string): Promise<void> {
+  printInfo(`Deleting user: ${userId}`);
+
+  const { status, data } = await apiRequest(`/admin/users/${userId}`, {
+    method: 'DELETE',
+    useAuth: true,
+  });
+
+  if (status === 204) {
+    printSuccess('User deleted');
+  } else {
+    printError(`Failed to delete user (HTTP ${status})`);
+    if (data) printJson(data);
+    process.exit(1);
+  }
+}
+
 async function dbReinit(): Promise<void> {
   printInfo('Starting database reinitialization');
 
@@ -542,6 +633,14 @@ ${colors.green}Todo Operations:${colors.reset}
   todos:update <todo_id> [--description="New"] [--priority=low] [--due=2025-12-31]
   todos:delete <todo_id>                  - Delete a todo
 
+${colors.green}Admin User Management (requires admin/sysadmin role):${colors.reset}
+  admin:users                             - List all users
+  admin:users:get <user_id>               - Get a specific user
+  admin:users:update <user_id> [options]  - Update user (sysadmin only)
+    Options: --email, --password, --fullName, --role, --emailVerifiedAt
+    emailVerifiedAt special values: '', 'null', 'now', or date string
+  admin:users:delete <user_id>            - Delete user (sysadmin only)
+
 ${colors.green}Health:${colors.reset}
   health                                  - Check API health
   readiness                               - Check API readiness
@@ -557,7 +656,10 @@ ${colors.green}Examples:${colors.reset}
   npx tsx scripts/utils.ts login test@example.com password123
   npx tsx scripts/utils.ts todos:create "Buy groceries" --priority=high --due=2025-12-31
   npx tsx scripts/utils.ts todos:list
-  npx tsx scripts/utils.ts todos:delete <todo_id>
+  npx tsx scripts/utils.ts admin:users
+  npx tsx scripts/utils.ts admin:users:get <user_id>
+  npx tsx scripts/utils.ts admin:users:update <user_id> --role=admin --emailVerifiedAt=now
+  npx tsx scripts/utils.ts admin:users:delete <user_id>
 
 ${colors.yellow}Note: Requires tsx to be installed: pnpm add -D tsx${colors.reset}
 `);
@@ -666,6 +768,44 @@ async function main(): Promise<void> {
       // Token management
       case 'tokens:clear':
         clearTokens();
+        break;
+
+      // Admin user management
+      case 'admin:users':
+        await adminListUsers();
+        break;
+
+      case 'admin:users:get':
+        if (args.length < 1) {
+          printError('Usage: admin:users:get <user_id>');
+          process.exit(1);
+        }
+        await adminGetUser(args[0]);
+        break;
+
+      case 'admin:users:update': {
+        if (args.length < 1) {
+          printError('Usage: admin:users:update <user_id> [--email=] [--password=] [--fullName=] [--role=] [--emailVerifiedAt=]');
+          process.exit(1);
+        }
+        const userId = args[0];
+        const options = parseArgs(args.slice(1));
+        const updates: Record<string, unknown> = {};
+        if (options.email) updates.email = options.email;
+        if (options.password) updates.password = options.password;
+        if (options.fullName) updates.fullName = options.fullName;
+        if (options.role) updates.role = options.role;
+        if (options.emailVerifiedAt !== undefined) updates.emailVerifiedAt = options.emailVerifiedAt;
+        await adminUpdateUser(userId, updates);
+        break;
+      }
+
+      case 'admin:users:delete':
+        if (args.length < 1) {
+          printError('Usage: admin:users:delete <user_id>');
+          process.exit(1);
+        }
+        await adminDeleteUser(args[0]);
         break;
 
       // Database management

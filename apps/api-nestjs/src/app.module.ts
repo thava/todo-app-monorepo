@@ -12,6 +12,7 @@ import { EmailModule } from './modules/email/email.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { TodosModule } from './modules/todos/todos.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { HealthModule } from './common/health/health.module';
 
 @Module({
@@ -28,6 +29,7 @@ import { HealthModule } from './common/health/health.module';
     AuthModule,
     UsersModule,
     TodosModule,
+    AdminModule,
     HealthModule,
   ],
   controllers: [AppController],

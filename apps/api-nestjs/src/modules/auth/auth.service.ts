@@ -46,7 +46,7 @@ export class AuthService {
     userAgent?: string,
     ipAddress?: string,
   ): Promise<RegisterResponseDto> {
-    const { email, password, fullName } = registerDto;
+    const { email, password, fullName, autoverify = false, role = 'guest' } = registerDto;
 
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
@@ -76,14 +76,15 @@ export class AuthService {
     // Hash password
     const passwordHash = await this.passwordService.hashPassword(password);
 
-    // Create user
+    // Create user with optional autoverify and custom role
     const [newUser] = await this.db
       .insert(users)
       .values({
         email: normalizedEmail,
         fullName: fullName.trim(),
         passwordHashPrimary: passwordHash,
-        role: 'guest',
+        role: role,
+        emailVerifiedAt: autoverify ? new Date() : null,
       })
       .returning();
 
@@ -91,22 +92,24 @@ export class AuthService {
     await this.auditService.logAuth(
       'REGISTER',
       newUser.id,
-      { email: newUser.email },
+      { email: newUser.email, role: newUser.role, autoverified: autoverify },
       ipAddress,
       userAgent,
     );
 
-    // Send verification email
-    await this.sendVerificationEmail(newUser.id, newUser.email, newUser.fullName);
+    // Send verification email only if autoverify is false
+    if (!autoverify) {
+      await this.sendVerificationEmail(newUser.id, newUser.email, newUser.fullName);
+    }
 
-    // Return user info without tokens (email verification required)
+    // Return user info without tokens (email verification required unless autoverified)
     return {
       user: {
         id: newUser.id,
         email: newUser.email,
         fullName: newUser.fullName,
         role: newUser.role,
-        emailVerified: false,
+        emailVerified: autoverify,
       },
     };
   }

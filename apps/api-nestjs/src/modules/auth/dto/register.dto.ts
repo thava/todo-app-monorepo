@@ -1,4 +1,5 @@
-import { IsEmail, IsString, MinLength, MaxLength } from 'class-validator';
+import { IsEmail, IsString, MinLength, MaxLength, IsBoolean, IsOptional, IsIn } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class RegisterDto {
   @IsEmail({}, { message: 'Invalid email format' })
@@ -13,4 +14,18 @@ export class RegisterDto {
   @MinLength(1, { message: 'Full name is required' })
   @MaxLength(255, { message: 'Full name must be at most 255 characters' })
   fullName: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  autoverify?: boolean = false;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['guest', 'admin', 'sysadmin'], { message: 'Role must be guest, admin, or sysadmin' })
+  role?: 'guest' | 'admin' | 'sysadmin' = 'guest';
 }

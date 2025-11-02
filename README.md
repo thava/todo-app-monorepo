@@ -9,6 +9,7 @@ todo-app/
 ├── apps/
 │   ├── api-nestjs/          # NestJS backend implementation
 │   ├── frontend-nextjs/     # Next.js SPA frontend
+│   ├── frontend-astro/      # Astro SPA frontend
 │   └── [future backends]    # api-fastify, api-express, etc.
 ├── packages/
 │   ├── database/            # Shared Drizzle ORM schemas & types
