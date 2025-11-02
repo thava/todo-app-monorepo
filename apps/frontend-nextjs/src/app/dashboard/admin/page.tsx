@@ -97,9 +97,9 @@ export default function AdminPage() {
       emailVerifiedAt: false,
     });
 
-    // Scroll to edit form
+    // Scroll to top of page to show edit form (accounts for fixed navbar)
     setTimeout(() => {
-      editFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 100);
   };
 
@@ -138,7 +138,7 @@ export default function AdminPage() {
       setShowCreateForm(true);
       setEditingUser(null); // Close edit form if open
       setTimeout(() => {
-        createFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 100);
     }
   };
@@ -275,9 +275,9 @@ export default function AdminPage() {
       {showCreateForm && (
         <div ref={createFormRef} className="mb-8 bg-surface-primary rounded-xl shadow-md border border-border p-6">
           <h2 className="text-xl font-semibold text-foreground mb-4">Create New User</h2>
-          <form onSubmit={handleCreateUser} className="space-y-4">
+          <form onSubmit={handleCreateUser} className="space-y-3">
             <div>
-              <label htmlFor="create-fullName" className="block text-sm font-medium text-foreground mb-2">
+              <label htmlFor="create-fullName" className="block text-sm font-medium text-foreground mb-1">
                 Full Name *
               </label>
               <input
@@ -286,12 +286,12 @@ export default function AdminPage() {
                 value={createFullName}
                 onChange={(e) => setCreateFullName(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label htmlFor="create-email" className="block text-sm font-medium text-foreground mb-2">
+              <label htmlFor="create-email" className="block text-sm font-medium text-foreground mb-1">
                 Email *
               </label>
               <input
@@ -300,12 +300,12 @@ export default function AdminPage() {
                 value={createEmail}
                 onChange={(e) => setCreateEmail(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label htmlFor="create-password" className="block text-sm font-medium text-foreground mb-2">
+              <label htmlFor="create-password" className="block text-sm font-medium text-foreground mb-1">
                 Password *
               </label>
               <input
@@ -314,19 +314,19 @@ export default function AdminPage() {
                 value={createPassword}
                 onChange={(e) => setCreatePassword(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label htmlFor="create-role" className="block text-sm font-medium text-foreground mb-2">
+              <label htmlFor="create-role" className="block text-sm font-medium text-foreground mb-1">
                 Role (Optional)
               </label>
               <select
                 id="create-role"
                 value={createRole}
                 onChange={(e) => setCreateRole(e.target.value as any)}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="guest">Guest</option>
                 <option value="admin">Admin</option>
@@ -347,7 +347,7 @@ export default function AdminPage() {
               </label>
             </div>
 
-            <div className="flex gap-2 pt-4">
+            <div className="flex gap-2 pt-2">
               <button
                 type="submit"
                 className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-sm transition-colors"
@@ -376,142 +376,142 @@ export default function AdminPage() {
               </p>
             </div>
           )}
-          <form onSubmit={handleUpdateUser} className="space-y-4">
+          <form onSubmit={handleUpdateUser} className="space-y-3">
             {/* Full Name */}
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="edit-fullName"
-                checked={editableFields.fullName}
-                onChange={() => toggleField('fullName')}
-                disabled={!isSysadmin}
-                className="mt-3 h-4 w-4"
-              />
-              <div className="flex-1">
-                <label htmlFor="fullName" className="block text-sm font-medium text-foreground mb-2">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="checkbox"
+                  id="edit-fullName"
+                  checked={editableFields.fullName}
+                  onChange={() => toggleField('fullName')}
+                  disabled={!isSysadmin}
+                  className="h-4 w-4"
+                />
+                <label htmlFor="fullName" className="text-sm font-medium text-foreground">
                   Full Name
                 </label>
-                <input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={!editableFields.fullName || !isSysadmin}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                />
               </div>
+              <input
+                id="fullName"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                disabled={!editableFields.fullName || !isSysadmin}
+                className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+              />
             </div>
 
             {/* Email */}
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="edit-email"
-                checked={editableFields.email}
-                onChange={() => toggleField('email')}
-                disabled={!isSysadmin}
-                className="mt-3 h-4 w-4"
-              />
-              <div className="flex-1">
-                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="checkbox"
+                  id="edit-email"
+                  checked={editableFields.email}
+                  onChange={() => toggleField('email')}
+                  disabled={!isSysadmin}
+                  className="h-4 w-4"
+                />
+                <label htmlFor="email" className="text-sm font-medium text-foreground">
                   Email
                 </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={!editableFields.email || !isSysadmin}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                />
               </div>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={!editableFields.email || !isSysadmin}
+                className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+              />
             </div>
 
             {/* Role */}
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="edit-role"
-                checked={editableFields.role}
-                onChange={() => toggleField('role')}
-                disabled={!isSysadmin}
-                className="mt-3 h-4 w-4"
-              />
-              <div className="flex-1">
-                <label htmlFor="role" className="block text-sm font-medium text-foreground mb-2">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="checkbox"
+                  id="edit-role"
+                  checked={editableFields.role}
+                  onChange={() => toggleField('role')}
+                  disabled={!isSysadmin}
+                  className="h-4 w-4"
+                />
+                <label htmlFor="role" className="text-sm font-medium text-foreground">
                   Role
                 </label>
-                <select
-                  id="role"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as any)}
-                  disabled={!editableFields.role || !isSysadmin}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                >
-                  <option value="guest">Guest</option>
-                  <option value="admin">Admin</option>
-                  <option value="sysadmin">Sysadmin</option>
-                </select>
               </div>
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as any)}
+                disabled={!editableFields.role || !isSysadmin}
+                className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+              >
+                <option value="guest">Guest</option>
+                <option value="admin">Admin</option>
+                <option value="sysadmin">Sysadmin</option>
+              </select>
             </div>
 
             {/* Password */}
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="edit-password"
-                checked={editableFields.password}
-                onChange={() => toggleField('password')}
-                disabled={!isSysadmin}
-                className="mt-3 h-4 w-4"
-              />
-              <div className="flex-1">
-                <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="checkbox"
+                  id="edit-password"
+                  checked={editableFields.password}
+                  onChange={() => toggleField('password')}
+                  disabled={!isSysadmin}
+                  className="h-4 w-4"
+                />
+                <label htmlFor="password" className="text-sm font-medium text-foreground">
                   New Password
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={!editableFields.password || !isSysadmin}
-                  placeholder="Leave blank to keep current password"
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                />
               </div>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={!editableFields.password || !isSysadmin}
+                placeholder="Leave blank to keep current password"
+                className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+              />
             </div>
 
             {/* Email Verified At */}
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="edit-emailVerifiedAt"
-                checked={editableFields.emailVerifiedAt}
-                onChange={() => toggleField('emailVerifiedAt')}
-                disabled={!isSysadmin}
-                className="mt-3 h-4 w-4"
-              />
-              <div className="flex-1">
-                <label htmlFor="emailVerifiedAt" className="block text-sm font-medium text-foreground mb-2">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="checkbox"
+                  id="edit-emailVerifiedAt"
+                  checked={editableFields.emailVerifiedAt}
+                  onChange={() => toggleField('emailVerifiedAt')}
+                  disabled={!isSysadmin}
+                  className="h-4 w-4"
+                />
+                <label htmlFor="emailVerifiedAt" className="text-sm font-medium text-foreground">
                   Email Verified At
                 </label>
-                <div className="text-sm text-muted mb-2">
-                  Current: {editingUser.emailVerifiedAt
-                    ? new Date(editingUser.emailVerifiedAt).toLocaleString()
-                    : 'Not verified'}
-                </div>
-                <select
-                  id="emailVerifiedAt"
-                  value={emailVerifiedAt}
-                  onChange={(e) => setEmailVerifiedAt(e.target.value as any)}
-                  disabled={!editableFields.emailVerifiedAt || !isSysadmin}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                >
-                  <option value="keep">Keep current</option>
-                  <option value="now">Set to now</option>
-                  <option value="null">Set to null (unverified)</option>
-                </select>
               </div>
+              <div className="text-xs text-muted mb-1">
+                Current: {editingUser.emailVerifiedAt
+                  ? new Date(editingUser.emailVerifiedAt).toLocaleString()
+                  : 'Not verified'}
+              </div>
+              <select
+                id="emailVerifiedAt"
+                value={emailVerifiedAt}
+                onChange={(e) => setEmailVerifiedAt(e.target.value as any)}
+                disabled={!editableFields.emailVerifiedAt || !isSysadmin}
+                className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+              >
+                <option value="keep">Keep current</option>
+                <option value="now">Set to now</option>
+                <option value="null">Set to null (unverified)</option>
+              </select>
             </div>
 
             <div className="flex gap-2 pt-4">
