@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { api } from '@/lib/api';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface Todo {
   id: string;
@@ -20,6 +21,10 @@ export default function TodosPage() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; todoId: string | null }>({
+    isOpen: false,
+    todoId: null,
+  });
 
   // Form state
   const [description, setDescription] = useState('');
@@ -49,6 +54,7 @@ export default function TodosPage() {
     e.preventDefault();
     if (!accessToken) return;
 
+    setError(''); // Clear any existing errors
     try {
       const newTodo = await api.createTodo(accessToken, {
         description,
@@ -66,6 +72,7 @@ export default function TodosPage() {
     e.preventDefault();
     if (!accessToken || !editingTodo) return;
 
+    setError(''); // Clear any existing errors
     try {
       const updatedTodo = await api.updateTodo(accessToken, editingTodo.id, {
         description,
@@ -79,19 +86,30 @@ export default function TodosPage() {
     }
   };
 
-  const handleDeleteTodo = async (id: string) => {
-    if (!accessToken) return;
-    if (!confirm('Are you sure you want to delete this todo?')) return;
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirm({ isOpen: true, todoId: id });
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!accessToken || !deleteConfirm.todoId) return;
+
+    setError(''); // Clear any existing errors
     try {
-      await api.deleteTodo(accessToken, id);
-      setTodos(todos.filter((t) => t.id !== id));
+      await api.deleteTodo(accessToken, deleteConfirm.todoId);
+      setTodos(todos.filter((t) => t.id !== deleteConfirm.todoId));
+      setDeleteConfirm({ isOpen: false, todoId: null });
     } catch (err: any) {
       setError(err?.message || 'Failed to delete todo');
+      setDeleteConfirm({ isOpen: false, todoId: null });
     }
   };
 
+  const handleDeleteCancel = () => {
+    setDeleteConfirm({ isOpen: false, todoId: null });
+  };
+
   const startEdit = (todo: Todo) => {
+    setError(''); // Clear errors when starting edit
     setEditingTodo(todo);
     setDescription(todo.description);
     setPriority(todo.priority);
@@ -105,6 +123,7 @@ export default function TodosPage() {
     setDueDate('');
     setEditingTodo(null);
     setShowForm(false);
+    setError(''); // Clear errors when closing form
   };
 
   const getPriorityColor = (priority: string) => {
@@ -133,8 +152,17 @@ export default function TodosPage() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start justify-between">
+          <p className="text-sm text-red-600 dark:text-red-400 flex-1">{error}</p>
+          <button
+            onClick={() => setError('')}
+            className="ml-2 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+            aria-label="Dismiss error"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
 
@@ -253,7 +281,7 @@ export default function TodosPage() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDeleteTodo(todo.id)}
+                    onClick={() => handleDeleteClick(todo.id)}
                     className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-800 dark:text-red-200 rounded-lg transition-colors shadow-sm"
                   >
                     Delete
@@ -264,6 +292,18 @@ export default function TodosPage() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Todo"
+        message="Are you sure you want to delete this todo? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </div>
   );
 }

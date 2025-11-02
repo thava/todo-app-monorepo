@@ -28,7 +28,7 @@ export class TodosService {
       .values({
         ownerId: userId,
         description: createTodoDto.description,
-        dueDate: createTodoDto.dueDate,
+        dueDate: createTodoDto.dueDate ? new Date(createTodoDto.dueDate) : null,
         priority: createTodoDto.priority || 'medium',
       })
       .returning();
@@ -142,14 +142,26 @@ export class TodosService {
       throw new ForbiddenException('You can only update your own todos');
     }
 
+    // Build update object, only including provided fields
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    if (updateTodoDto.description !== undefined) {
+      updateData.description = updateTodoDto.description;
+    }
+
+    if (updateTodoDto.dueDate !== undefined) {
+      updateData.dueDate = updateTodoDto.dueDate ? new Date(updateTodoDto.dueDate) : null;
+    }
+
+    if (updateTodoDto.priority !== undefined) {
+      updateData.priority = updateTodoDto.priority;
+    }
+
     const [updatedTodo] = await this.db
       .update(todos)
-      .set({
-        description: updateTodoDto.description,
-        dueDate: updateTodoDto.dueDate,
-        priority: updateTodoDto.priority,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(todos.id, id))
       .returning();
 

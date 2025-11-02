@@ -6,6 +6,18 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Enable CORS
+  const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+    ? process.env.CORS_ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:4000', 'http://localhost:3000'];
+
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: false,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
@@ -26,5 +38,6 @@ async function bootstrap() {
   const port = process.env.NESTJS_PORT || process.env.PORT || 3000;
   await app.listen(port);
   console.log(`🚀 NestJS API listening on http://localhost:${port}`);
+  console.log(`🔓 CORS enabled for: ${allowedOrigins.join(', ')}`);
 }
 bootstrap();

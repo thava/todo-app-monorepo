@@ -35,7 +35,14 @@ class ApiClient {
       throw error;
     }
 
-    return response.json();
+    // Handle empty responses (204 No Content, etc.)
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return undefined as T;
+    }
+
+    const text = await response.text();
+    return text ? JSON.parse(text) : undefined as T;
   }
 
   // Auth endpoints
@@ -105,8 +112,8 @@ class ApiClient {
     });
   }
 
-  async deleteTodo(accessToken: string, id: string) {
-    return this.request(`/todos/${id}`, {
+  async deleteTodo(accessToken: string, id: string): Promise<void> {
+    await this.request<void>(`/todos/${id}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${accessToken}`,
