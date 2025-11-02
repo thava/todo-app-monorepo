@@ -7,7 +7,7 @@ interface User {
   email: string;
   fullName: string;
   role: 'guest' | 'admin' | 'sysadmin';
-  emailVerifiedAt: string | null;
+  emailVerified: boolean;
 }
 
 interface AuthState {

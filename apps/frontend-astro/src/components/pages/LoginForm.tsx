@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuthStore } from '../../lib/store';
+import { useAuthStore } from '@/lib/store';
 
 export function LoginForm() {
   const { login, isLoading } = useAuthStore();

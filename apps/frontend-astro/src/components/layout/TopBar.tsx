@@ -1,6 +1,6 @@
 import React from 'react';
-import { ThemeToggle } from '../theme/ThemeToggle';
-import { useAuthStore } from '../../lib/store';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { useAuthStore } from '@/lib/store';
 
 export function TopBar() {
   const { isAuthenticated, user, logout } = useAuthStore();

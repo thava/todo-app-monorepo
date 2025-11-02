@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useAuthStore } from '../../lib/store';
+import { useAuthStore } from '@/lib/store';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { refreshToken, loadUser, _hasHydrated } = useAuthStore();

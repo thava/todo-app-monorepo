@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuthStore } from '../../lib/store';
+import { useAuthStore } from '@/lib/store';
 
 export function ProfilePage() {
   const { user } = useAuthStore();
@@ -7,19 +7,6 @@ export function ProfilePage() {
   if (!user) {
     return null;
   }
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) {
-      return 'Not verified';
-    }
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   return (
     <div>
@@ -52,13 +39,13 @@ export function ProfilePage() {
 
           <div>
             <label className="block text-sm font-medium text-muted mb-2">
-              Email Verified At
+              Email Verification Status
             </label>
             <div className="flex items-center gap-2">
-              {user.emailVerifiedAt ? (
+              {user.emailVerified ? (
                 <>
                   <span className="text-green-500">✓</span>
-                  <span className="text-foreground">{formatDate(user.emailVerifiedAt)}</span>
+                  <span className="text-foreground">Verified</span>
                 </>
               ) : (
                 <>

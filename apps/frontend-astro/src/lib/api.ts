@@ -120,6 +120,64 @@ class ApiClient {
       },
     });
   }
+
+  // Admin endpoints
+  async getUsers(accessToken: string) {
+    return this.request('/admin/users', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async createUser(accessToken: string, data: {
+    email: string;
+    password: string;
+    fullName: string;
+    autoverify?: boolean;
+    role?: string;
+  }) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getUser(accessToken: string, id: string) {
+    return this.request(`/admin/users/${id}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async updateUser(accessToken: string, id: string, data: {
+    fullName?: string;
+    email?: string;
+    role?: string;
+    password?: string;
+    emailVerifiedAt?: string | null;
+  }) {
+    return this.request(`/admin/users/${id}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteUser(accessToken: string, id: string): Promise<void> {
+    await this.request<void>(`/admin/users/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
 }
 
 export const api = new ApiClient(config.apiUrl);

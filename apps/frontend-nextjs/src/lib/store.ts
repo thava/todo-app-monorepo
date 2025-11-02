@@ -10,6 +10,7 @@ interface User {
   fullName: string;
   role: 'guest' | 'admin' | 'sysadmin';
   emailVerified: boolean;
+  emailVerifiedAt?: string | null;
 }
 
 interface AuthState {

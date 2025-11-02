@@ -1,0 +1,8 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { AdminUsersPage } from '@/components/pages/AdminUsersPage';
+---
+
+<DashboardLayout title="User Administration - TodoGizmo">
+  <AdminUsersPage client:load />
+</DashboardLayout>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAuthStore } from '../../lib/store';
-import { api } from '../../lib/api';
-import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { useAuthStore } from '@/lib/store';
+import { api } from '@/lib/api';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface Todo {
   id: string;

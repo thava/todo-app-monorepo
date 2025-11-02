@@ -50,7 +50,14 @@ export class UsersService {
    * Get current user profile
    */
   async getProfile(userId: string) {
-    return this.findById(userId);
+    const user = await this.findById(userId);
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      emailVerified: !!user.emailVerifiedAt,
+    };
   }
 
   /**
