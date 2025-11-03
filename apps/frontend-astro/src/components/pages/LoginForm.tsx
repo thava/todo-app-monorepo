@@ -104,7 +104,7 @@ export function LoginForm() {
 
       <div className="mt-4 text-center text-sm text-muted">
         <p>Demo accounts:</p>
-        <p>guest1, admin1, sysadmin1 @mydomain.com / Todo####</p>
+        <p> {import.meta.env.PUBLIC_DEMO_USERS}  @{import.meta.env.PUBLIC_DEMO_DOMAIN} / {import.meta.env.PUBLIC_DEMO_PASSWORD}</p>
       </div>
     </div>
   );

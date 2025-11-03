@@ -105,7 +105,7 @@ export default function LoginPage() {
 
         <div className="mt-4 text-center text-sm text-muted">
           <p>Demo accounts:</p>
-          <p>guest1, admin1, sysadmin1 @mydomain.com / Todo####</p>
+          <p>{process.env.NEXT_PUBLIC_DEMO_USERS} @{process.env.NEXT_PUBLIC_DEMO_DOMAIN} / {process.env.NEXT_PUBLIC_DEMO_PASSWORD} </p>
         </div>
       </div>
     </div>

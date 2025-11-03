@@ -529,15 +529,30 @@ async function dbReinit(): Promise<void> {
     await db.delete(schema.users);
     printSuccess('All tables cleared');
 
-    // Create test users
-    const testUsers = [
-      { email: 'guest1@zatvia.com', password: 'Todo####', fullName: 'Guest1 User', role: 'guest' as const },
-      { email: 'admin1@zatvia.com', password: 'Todo####', fullName: 'Admin1 User', role: 'admin' as const },
-      { email: 'sysadmin1@zatvia.com', password: 'Todo####', fullName: 'Sysadmin1 User', role: 'sysadmin' as const },
-      { email: 'guest2@zatvia.com', password: 'Todo####', fullName: 'Guest2 User', role: 'guest' as const },
-      { email: 'admin2@zatvia.com', password: 'Todo####', fullName: 'Admin2 User', role: 'admin' as const },
-      { email: 'sysadmin2@zatvia.com', password: 'Todo####', fullName: 'Sysadmin2 User', role: 'sysadmin' as const }
-    ];
+    const domain = process.env.DEMO_DOMAIN || 'mydomain.com'
+    const password = process.env.DEMO_PASSWORD || 'mypassword'
+    const userListStr = process.env.DEMO_USERS || 'guest1,admin1,sysadmin1'
+    const userList = userListStr?.split(',') ?? [];
+
+    const testUsers = userList.map(username => {
+      const email = `${username}@${domain}`;
+      const capitalized = username.charAt(0).toUpperCase() + username.slice(1);
+      const fullName = `${capitalized} User`;
+
+      // Infer role from username prefix
+      let role: 'guest' | 'admin' | 'sysadmin';
+      if (username.startsWith('guest')) {
+        role = 'guest';
+      } else if (username.startsWith('admin')) {
+        role = 'admin';
+      } else if (username.startsWith('sysadmin')) {
+        role = 'sysadmin';
+      } else {
+        role = 'guest';
+      }
+
+      return { email, password, fullName, role };
+    });
 
     printInfo('Creating test users...');
     const createdUsers: Array<{ id: string; email: string; username: string }> = [];
