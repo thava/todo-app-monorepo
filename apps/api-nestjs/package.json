@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
+    "copy:openapi": "mkdir -p docs && cp dist/docs/openapi.yaml docs/openapi.yaml 2>/dev/null || echo 'Note: OpenAPI spec will be generated when the app runs'",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -82,7 +83,8 @@
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.20.6",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.20.0",
+    "yaml": "^2.8.1"
   },
   "jest": {
     "moduleFileExtensions": [
