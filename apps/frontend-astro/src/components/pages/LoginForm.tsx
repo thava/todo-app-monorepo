@@ -104,8 +104,7 @@ export function LoginForm() {
 
       <div className="mt-4 text-center text-sm text-muted">
         <p>Demo accounts:</p>
-        <p>guest1@example.com / Guest@123</p>
-        <p>admin1@example.com / Admin@123</p>
+        <p>guest1, admin1, sysadmin1 @mydomain.com / Todo####</p>
       </div>
     </div>
   );

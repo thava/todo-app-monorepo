@@ -12,10 +12,14 @@ interface Todo {
   dueDate: string | null;
   createdAt: string;
   updatedAt: string;
+  ownerId: string;
+  ownerEmail?: string;
+  ownerName?: string;
+  ownerRole?: 'guest' | 'admin' | 'sysadmin';
 }
 
 export default function TodosPage() {
-  const { accessToken } = useAuthStore();
+  const { accessToken, user: currentUser } = useAuthStore();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -25,6 +29,7 @@ export default function TodosPage() {
     isOpen: false,
     todoId: null,
   });
+  const [recentlyUpdatedId, setRecentlyUpdatedId] = useState<string | null>(null);
 
   // Form state
   const [description, setDescription] = useState('');
@@ -80,9 +85,30 @@ export default function TodosPage() {
         dueDate: dueDate || undefined,
       }) as Todo;
       setTodos(todos.map((t) => (t.id === editingTodo.id ? updatedTodo : t)));
+
+      const updatedTodoId = editingTodo.id;
+
+      // Show "Updated" badge temporarily
+      setRecentlyUpdatedId(updatedTodoId);
+      setTimeout(() => {
+        setRecentlyUpdatedId(null);
+      }, 3000); // Badge disappears after 3 seconds
+
       resetForm();
+
+      // Scroll to center the updated todo item
+      setTimeout(() => {
+        const element = document.getElementById(`todo-${updatedTodoId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
     } catch (err: any) {
       setError(err?.message || 'Failed to update todo');
+      // Scroll to top to show error message (accounts for fixed navbar)
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50);
     }
   };
 
@@ -101,6 +127,10 @@ export default function TodosPage() {
     } catch (err: any) {
       setError(err?.message || 'Failed to delete todo');
       setDeleteConfirm({ isOpen: false, todoId: null });
+      // Scroll to top to show error message (accounts for fixed navbar)
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50);
     }
   };
 
@@ -110,11 +140,11 @@ export default function TodosPage() {
 
   const startEdit = (todo: Todo) => {
     setError(''); // Clear errors when starting edit
+    setShowForm(false); // Close create form if open
     setEditingTodo(todo);
     setDescription(todo.description);
     setPriority(todo.priority);
     setDueDate(todo.dueDate ? todo.dueDate.split('T')[0] : '');
-    setShowForm(true);
   };
 
   const resetForm = () => {
@@ -124,6 +154,14 @@ export default function TodosPage() {
     setEditingTodo(null);
     setShowForm(false);
     setError(''); // Clear errors when closing form
+  };
+
+  const cancelEdit = () => {
+    setEditingTodo(null);
+    setDescription('');
+    setPriority('medium');
+    setDueDate('');
+    setError('');
   };
 
   const getPriorityColor = (priority: string) => {
@@ -137,6 +175,27 @@ export default function TodosPage() {
       default:
         return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
     }
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'sysadmin':
+        return 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200';
+      case 'admin':
+        return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
+      case 'guest':
+        return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
+      default:
+        return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
+    }
+  };
+
+  const canEditOrDelete = (todo: Todo) => {
+    if (!currentUser) return false;
+    // Sysadmin can edit/delete all todos
+    if (currentUser.role === 'sysadmin') return true;
+    // Others can only edit/delete their own todos
+    return todo.ownerId === currentUser.id;
   };
 
   return (
@@ -254,40 +313,140 @@ export default function TodosPage() {
           {todos.map((todo) => (
             <div
               key={todo.id}
-              className="bg-surface-primary rounded-xl shadow-md border border-border p-6 hover:shadow-lg transition-shadow"
+              id={`todo-${todo.id}`}
+              className={`bg-surface-primary rounded-xl shadow-md border border-border p-6 hover:shadow-lg transition-all duration-300 ${
+                recentlyUpdatedId === todo.id ? 'ring-4 ring-green-400 dark:ring-green-500 shadow-2xl' : ''
+              }`}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="text-lg text-foreground mb-2">{todo.description}</p>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className={`px-2 py-1 rounded-full font-medium ${getPriorityColor(todo.priority)}`}>
-                      {todo.priority}
-                    </span>
-                    {todo.dueDate && (
+              {editingTodo?.id === todo.id ? (
+                // Inline Edit Form
+                <div>
+                  <h3 className="text-xl font-semibold text-foreground mb-4">Edit Todo</h3>
+                  <form onSubmit={handleUpdateTodo} className="space-y-4">
+                    <div>
+                      <label htmlFor={`description-${todo.id}`} className="block text-sm font-medium text-foreground mb-2">
+                        Description *
+                      </label>
+                      <textarea
+                        id={`description-${todo.id}`}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        required
+                        rows={3}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        placeholder="Enter todo description..."
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor={`priority-${todo.id}`} className="block text-sm font-medium text-foreground mb-2">
+                          Priority
+                        </label>
+                        <select
+                          id={`priority-${todo.id}`}
+                          value={priority}
+                          onChange={(e) => setPriority(e.target.value as any)}
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label htmlFor={`dueDate-${todo.id}`} className="block text-sm font-medium text-foreground mb-2">
+                          Due Date (Optional)
+                        </label>
+                        <input
+                          id={`dueDate-${todo.id}`}
+                          type="date"
+                          value={dueDate}
+                          onChange={(e) => setDueDate(e.target.value)}
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-sm transition-colors"
+                      >
+                        Update Todo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="px-4 py-2 bg-surface-primary hover:bg-surface-secondary border border-border text-foreground font-medium rounded-lg shadow-sm transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                // Todo Display
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-lg text-foreground mb-3">{todo.description}</p>
+
+                    {/* Owner Information - only show if todo owner is different from current user */}
+                    {todo.ownerId !== currentUser?.id && todo.ownerName && (
+                      <div className="mb-3 p-3 bg-surface-secondary rounded-lg border border-border">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-foreground">Owner:</span>
+                          <span className="text-sm text-foreground">{todo.ownerName}</span>
+                          <span className="text-sm text-muted">({todo.ownerEmail})</span>
+                          {todo.ownerRole && (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(todo.ownerRole)}`}>
+                              {todo.ownerRole}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-4 text-sm flex-wrap">
+                      <span className={`px-2 py-1 rounded-full font-medium ${getPriorityColor(todo.priority)}`}>
+                        {todo.priority}
+                      </span>
+                      {todo.dueDate && (
+                        <span className="text-muted">
+                          Due: {new Date(todo.dueDate).toLocaleDateString()}
+                        </span>
+                      )}
                       <span className="text-muted">
-                        Due: {new Date(todo.dueDate).toLocaleDateString()}
+                        Created: {new Date(todo.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 ml-4 items-end">
+                    {canEditOrDelete(todo) && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => startEdit(todo)}
+                          className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-lg transition-colors shadow-sm"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(todo.id)}
+                          className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-800 dark:text-red-200 rounded-lg transition-colors shadow-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                    {recentlyUpdatedId === todo.id && (
+                      <span className="px-3 py-1.5 rounded-lg font-semibold text-sm bg-green-500 dark:bg-green-600 text-white shadow-lg animate-bounce">
+                        ✓ Updated
                       </span>
                     )}
-                    <span className="text-muted">
-                      Created: {new Date(todo.createdAt).toLocaleDateString()}
-                    </span>
                   </div>
                 </div>
-                <div className="flex gap-2 ml-4">
-                  <button
-                    onClick={() => startEdit(todo)}
-                    className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-lg transition-colors shadow-sm"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClick(todo.id)}
-                    className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-800 dark:text-red-200 rounded-lg transition-colors shadow-sm"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           ))}
         </div>

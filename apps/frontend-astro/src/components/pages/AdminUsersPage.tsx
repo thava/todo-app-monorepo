@@ -210,6 +210,10 @@ export function AdminUsersPage() {
       resetForm();
     } catch (err: any) {
       setError(err?.message || 'Failed to update user');
+      // Scroll to top to show error message (accounts for fixed navbar)
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
     }
   };
 
@@ -228,6 +232,10 @@ export function AdminUsersPage() {
     } catch (err: any) {
       setError(err?.message || 'Failed to delete user');
       setDeleteConfirm({ isOpen: false, userId: null });
+      // Scroll to top to show error message (accounts for fixed navbar)
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
     }
   };
 

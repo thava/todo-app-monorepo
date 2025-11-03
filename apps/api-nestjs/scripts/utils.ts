@@ -531,9 +531,12 @@ async function dbReinit(): Promise<void> {
 
     // Create test users
     const testUsers = [
-      { email: 'guest1@example.com', password: 'Guest@123', fullName: 'Guest User 1', role: 'guest' as const },
-      { email: 'admin1@example.com', password: 'Admin@123', fullName: 'Admin User 1', role: 'admin' as const },
-      { email: 'sysadmin1@example.com', password: 'Sysadmin@123', fullName: 'Sysadmin User 1', role: 'sysadmin' as const },
+      { email: 'guest1@zatvia.com', password: 'Todo####', fullName: 'Guest1 User', role: 'guest' as const },
+      { email: 'admin1@zatvia.com', password: 'Todo####', fullName: 'Admin1 User', role: 'admin' as const },
+      { email: 'sysadmin1@zatvia.com', password: 'Todo####', fullName: 'Sysadmin1 User', role: 'sysadmin' as const },
+      { email: 'guest2@zatvia.com', password: 'Todo####', fullName: 'Guest2 User', role: 'guest' as const },
+      { email: 'admin2@zatvia.com', password: 'Todo####', fullName: 'Admin2 User', role: 'admin' as const },
+      { email: 'sysadmin2@zatvia.com', password: 'Todo####', fullName: 'Sysadmin2 User', role: 'sysadmin' as const }
     ];
 
     printInfo('Creating test users...');
@@ -556,8 +559,9 @@ async function dbReinit(): Promise<void> {
         emailVerifiedAt: new Date(),
       }).returning();
 
+      // username unused for now.
       createdUsers.push({ ...user, username: userData.email.split('@')[0] });
-      printSuccess(`Created user: ${userData.email} (${userData.role})`);
+      printSuccess(`Created user: ${userData.email} ${userData.role}: ${userData.fullName}`);
     }
 
     // Create 3 todos for each user
@@ -581,11 +585,10 @@ async function dbReinit(): Promise<void> {
 
     printSuccess('Database reinitialization completed successfully');
     printInfo('\nTest accounts created:');
-    printInfo('  guest1@example.com / Guest@123 (role: guest)');
-    printInfo('  admin1@example.com / Admin@123 (role: admin)');
-    printInfo('  sysadmin1@example.com / Sysadmin@123 (role: sysadmin)');
-    printInfo('\n9 todos created (3 per user)');
-
+    for (const userData of testUsers) {
+        printInfo(`${userData.email} [Password: ${userData.password}]`);
+    }
+    printInfo('\n3 todos created per user');
   } catch (error) {
     printError(`Database reinitialization failed: ${error}`);
     throw error;
