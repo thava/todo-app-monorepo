@@ -52,7 +52,7 @@ clean: ## Clean up generated files
 	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
 	rm -f .coverage
 	rm -rf htmlcov/
-	rm -f .dev-tokens-flask.json
+	rm -f .dev-tokens.json
 	@echo "$(GREEN)Clean complete!$(NC)"
 
 # Database commands

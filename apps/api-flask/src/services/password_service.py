@@ -1,27 +1,35 @@
 """Password hashing and validation service"""
-import bcrypt
+from argon2 import PasswordHasher, Type
+from argon2.exceptions import VerifyMismatchError, VerificationError, InvalidHashError
 import re
 
 
 class PasswordService:
     """Service for password operations"""
 
+    # Argon2id parameters matching NestJS (@node-rs/argon2)
+    # memoryCost: 19456 (19 MiB), timeCost: 2, parallelism: 1
+    _ph = PasswordHasher(
+        time_cost=2,           # timeCost
+        memory_cost=19456,     # memoryCost (in KiB)
+        parallelism=1,         # parallelism
+        hash_len=32,           # Default hash length
+        salt_len=16,           # Default salt length
+        type=Type.ID           # Argon2id
+    )
+
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash a password using bcrypt"""
-        salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-        return hashed.decode('utf-8')
+        """Hash a password using Argon2id"""
+        return PasswordService._ph.hash(password)
 
     @staticmethod
     def verify_password(password_hash: str, password: str) -> bool:
         """Verify a password against a hash"""
         try:
-            return bcrypt.checkpw(
-                password.encode('utf-8'),
-                password_hash.encode('utf-8')
-            )
-        except Exception:
+            PasswordService._ph.verify(password_hash, password)
+            return True
+        except (VerifyMismatchError, VerificationError, InvalidHashError):
             return False
 
     @staticmethod

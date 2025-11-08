@@ -31,7 +31,7 @@ The script automatically loads environment variables from the root `.env` file:
 - `DEMO_PASSWORD`: Password for demo users (default: `mypassword`)
 - `DEMO_USERS`: Comma-separated list of demo users (default: `guest1,admin1,sysadmin1`)
 
-Tokens are saved to `.dev-tokens-flask.json` in the current working directory.
+Tokens are saved to `.dev-tokens.json` in the current working directory.
 
 ## Available Commands
 

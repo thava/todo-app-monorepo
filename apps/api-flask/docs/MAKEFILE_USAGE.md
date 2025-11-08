@@ -127,7 +127,7 @@ make register EMAIL=test@example.com PASSWORD=pass123 NAME="Test User"
 
 # Login
 make login EMAIL=test@example.com PASSWORD=pass123
-# Saves tokens to .dev-tokens-flask.json
+# Saves tokens to .dev-tokens.json
 
 # Get user profile
 make profile

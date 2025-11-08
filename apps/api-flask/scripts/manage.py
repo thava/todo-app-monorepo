@@ -16,7 +16,7 @@ import os
 import sys
 import json
 import click
-import bcrypt
+from argon2 import PasswordHasher, Type
 import requests
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,7 +44,7 @@ else:
 
 # Configuration
 API_URL = os.getenv('FLASKAPI_URL', 'http://localhost:5000')
-TOKEN_FILE = Path.cwd() / '.dev-tokens-flask.json'
+TOKEN_FILE = Path.cwd() / '.dev-tokens.json'
 
 # Colors for terminal output
 class Colors:
@@ -217,12 +217,19 @@ def db_reinit():
             print_info('Creating test users...')
             created_users = []
 
+            # Argon2id hasher with same parameters as NestJS
+            ph = PasswordHasher(
+                time_cost=2,
+                memory_cost=19456,
+                parallelism=1,
+                hash_len=32,
+                salt_len=16,
+                type=Type.ID  # Argon2id
+            )
+
             for user_data in test_users:
-                # Hash password using bcrypt
-                password_hash = bcrypt.hashpw(
-                    user_data['password'].encode('utf-8'),
-                    bcrypt.gensalt()
-                ).decode('utf-8')
+                # Hash password using Argon2id
+                password_hash = ph.hash(user_data['password'])
 
                 # Create user with email already verified
                 user = User(
