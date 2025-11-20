@@ -1,7 +1,8 @@
 """Todo endpoints"""
 from flask import Blueprint, request, jsonify
-from datetime import datetime
+from datetime import datetime, timezone
 from marshmallow import Schema, fields, validate
+from typing import Any
 
 from ..app import db
 from ..models.todo import Todo, PriorityEnum
@@ -9,6 +10,13 @@ from ..models.user import RoleEnum
 from ..api.decorators import jwt_required_with_user
 
 todos_bp = Blueprint('todos', __name__)
+
+
+def load_schema(schema: Schema, data: Any) -> dict[str, Any]:
+    """Load and validate schema data with proper typing"""
+    result = schema.load(data)
+    assert isinstance(result, dict)
+    return result
 
 
 # Schemas
@@ -28,7 +36,7 @@ class UpdateTodoSchema(Schema):
 @jwt_required_with_user
 def create(user):
     """Create a new todo"""
-    data = CreateTodoSchema().load(request.json)
+    data = load_schema(CreateTodoSchema(), request.json or {})
 
     todo = Todo(
         owner_id=user.id,
@@ -88,7 +96,7 @@ def update(user, todo_id):
     if user.role != RoleEnum.sysadmin and todo.owner_id != user.id:
         return jsonify({'message': 'You can only update your own todos'}), 403
 
-    data = UpdateTodoSchema().load(request.json)
+    data = load_schema(UpdateTodoSchema(), request.json or {})
 
     # Update only provided fields
     if 'description' in data:
@@ -98,7 +106,7 @@ def update(user, todo_id):
     if 'priority' in data:
         todo.priority = PriorityEnum[data['priority']]
 
-    todo.updated_at = datetime.utcnow()
+    todo.updated_at = datetime.now(timezone.utc)
     db.session.commit()
 
     db.session.refresh(todo)
