@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
+from app.api.main import api_router
 from app.core.config import settings
 
 
@@ -38,12 +39,11 @@ if settings.all_cors_origins:
         allow_headers=["*"],
     )
 
-# TODO: Include routers once created
-# from app.api.main import api_router
-# app.include_router(api_router, prefix=settings.API_V1_STR)
+# Include API router
+app.include_router(api_router)
 
 
-@app.get("/")
+@app.get("/", tags=["App"])
 async def root() -> dict[str, str]:
-    """Root endpoint."""
+    """Root endpoint - Hello World."""
     return {"message": "Todo App API"}

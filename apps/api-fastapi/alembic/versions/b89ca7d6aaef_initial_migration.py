@@ -21,11 +21,11 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema."""
     # Create enum types
-    role_enum = postgresql.ENUM('guest', 'admin', 'sysadmin', name='roleenum')
-    role_enum.create(op.get_bind())
+    role_enum = postgresql.ENUM('guest', 'admin', 'sysadmin', name='roleenum', create_type=False)
+    role_enum.create(op.get_bind(), checkfirst=True)
 
-    priority_enum = postgresql.ENUM('low', 'medium', 'high', name='priorityenum')
-    priority_enum.create(op.get_bind())
+    priority_enum = postgresql.ENUM('low', 'medium', 'high', name='priorityenum', create_type=False)
+    priority_enum.create(op.get_bind(), checkfirst=True)
 
     # Create users table
     op.create_table(

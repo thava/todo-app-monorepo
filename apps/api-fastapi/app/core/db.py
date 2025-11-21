@@ -15,7 +15,7 @@ def get_engine() -> Engine:
     global _engine
     if _engine is None:
         # Convert DATABASE_URL to use psycopg driver
-        db_url = str(settings.DATABASE_URL)
+        db_url = str(settings.db_url)
         if db_url.startswith("postgresql://"):
             db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
         elif db_url.startswith("postgres://"):

@@ -1,5 +1,6 @@
 """Initialize database with default sysadmin user for development."""
 
+import logging
 import uuid
 from datetime import datetime
 
@@ -9,6 +10,8 @@ from app.core.config import settings
 from app.core.db import get_engine
 from app.models.user import RoleEnum, User
 from app.services.password import PasswordService
+
+logger = logging.getLogger(__name__)
 
 
 def create_sysadmin_user(session: Session, password_service: PasswordService) -> None:
@@ -21,7 +24,7 @@ def create_sysadmin_user(session: Session, password_service: PasswordService) ->
     existing_sysadmin = session.exec(statement).first()
 
     if existing_sysadmin:
-        print("Sysadmin user already exists")
+        logger.info("Sysadmin user already exists")
         return
 
     # Create sysadmin1 user
@@ -32,7 +35,7 @@ def create_sysadmin_user(session: Session, password_service: PasswordService) ->
     existing_user = session.exec(statement).first()
 
     if existing_user:
-        print(f"User {email} already exists")
+        logger.info(f"User {email} already exists")
         return
 
     # Hash password
@@ -52,7 +55,7 @@ def create_sysadmin_user(session: Session, password_service: PasswordService) ->
 
     session.add(user)
     session.commit()
-    print(f"Created sysadmin user: {email}")
+    logger.info(f"Created sysadmin user: {email}")
 
 
 def init() -> None:

@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: todo-fastapi-db
+    environment:
+      POSTGRES_USER: todo_user
+      POSTGRES_PASSWORD: todo_password_dev
+      POSTGRES_DB: todo_fastapi_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - todo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Adminer - Database Management UI
+  adminer:
+    image: adminer:latest
+    container_name: todo-fastapi-adminer
+    ports:
+      - "8081:8080"
+    networks:
+      - todo-network
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      - db
+
+  # FastAPI Application (optional - can run locally for dev)
+  api:
+    build:
+      context: .
+      target: production
+    container_name: todo-fastapi-api
+    environment:
+      # Application
+      NODE_ENV: development
+      FASTAPI_PORT: 8000
+      FASTAPI_URL: http://localhost:8000
+
+      # Database
+      DATABASE_URL: postgresql://todo_user:todo_password_dev@db:5432/todo_fastapi_dev
+
+      # JWT
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-6Tjy9M82RkzGInTX5N+1C4KiwmchDMxjREdXBObq5Nc=}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-22xvVywJLQj7OUlBxNVeY+1/Z3LhvqWTQCFA7VgpNzc=}
+      JWT_ACCESS_EXPIRY: 15m
+      JWT_REFRESH_EXPIRY: 7d
+
+      # Email (optional)
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-admin@zatvia.com}
+      EMAIL_FROM_NAME: "TodoApp Dev"
+
+      # CORS
+      CORS_ALLOWED_ORIGINS: http://localhost:4000,http://localhost:3000,http://localhost:4200
+
+      # Frontend
+      FRONTEND_HOST: http://localhost:4000
+
+      # Logging
+      LOG_LEVEL: debug
+    ports:
+      - "${FASTAPI_PORT:-8000}:8000"
+    networks:
+      - todo-network
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  postgres_data:
+
+networks:
+  todo-network:
+    driver: bridge

@@ -54,15 +54,18 @@ class Settings(BaseSettings):
         return origins
 
     # Database
-    DATABASE_URL: PostgresDsn
+    DATABASE_URL: PostgresDsn | None = None
+    FASTAPI_DATABASE_URL: PostgresDsn | None = None
 
-    @field_validator("DATABASE_URL", mode="before")
-    @classmethod
-    def validate_database_url(cls, v: str | None) -> str:
-        """Validate and ensure database URL is provided."""
-        if not v:
-            raise ValueError("DATABASE_URL must be set")
-        return v
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def db_url(self) -> PostgresDsn:
+        """Get the database URL, preferring FASTAPI_DATABASE_URL over DATABASE_URL."""
+        if self.FASTAPI_DATABASE_URL:
+            return self.FASTAPI_DATABASE_URL
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
+        raise ValueError("Either FASTAPI_DATABASE_URL or DATABASE_URL must be set")
 
     # JWT Configuration
     JWT_ACCESS_SECRET: str
