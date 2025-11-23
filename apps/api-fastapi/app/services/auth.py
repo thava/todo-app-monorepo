@@ -2,7 +2,7 @@
 
 import secrets
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 
 from fastapi import HTTPException, status
@@ -81,9 +81,9 @@ class AuthService:
             full_name=register_dto.full_name.strip(),
             password_hash_primary=password_hash,
             role=register_dto.role,
-            email_verified_at=datetime.utcnow() if register_dto.autoverify else None,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            email_verified_at=datetime.now(timezone.utc) if register_dto.autoverify else None,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
 
         self.session.add(new_user)
@@ -178,7 +178,7 @@ class AuthService:
 
         # Check if session is expired
         expires_at = session_obj.expires_at.replace(tzinfo=None) if session_obj.expires_at.tzinfo else session_obj.expires_at
-        if datetime.utcnow() > expires_at:
+        if datetime.now(timezone.utc) > expires_at:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Refresh token has expired",
@@ -196,7 +196,7 @@ class AuthService:
             )
 
         # Revoke old refresh token (rotation)
-        session_obj.revoked_at = datetime.utcnow()
+        session_obj.revoked_at = datetime.now(timezone.utc)
         self.session.add(session_obj)
         self.session.commit()
 
@@ -213,7 +213,7 @@ class AuthService:
         session_obj = self.session.exec(statement).first()
 
         if session_obj:
-            session_obj.revoked_at = datetime.utcnow()
+            session_obj.revoked_at = datetime.now(timezone.utc)
             self.session.add(session_obj)
             self.session.commit()
 
@@ -235,7 +235,7 @@ class AuthService:
 
         # Check if expired
         expires_at = verification_token.expires_at.replace(tzinfo=None) if verification_token.expires_at.tzinfo else verification_token.expires_at
-        if datetime.utcnow() > expires_at:
+        if datetime.now(timezone.utc) > expires_at:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Verification token has expired",
@@ -249,7 +249,7 @@ class AuthService:
             }
 
         # Mark token as used
-        verification_token.verified_at = datetime.utcnow()
+        verification_token.verified_at = datetime.now(timezone.utc)
         self.session.add(verification_token)
 
         # Mark user email as verified
@@ -257,7 +257,7 @@ class AuthService:
         user = self.session.exec(statement).first()
 
         if user:
-            user.email_verified_at = datetime.utcnow()
+            user.email_verified_at = datetime.now(timezone.utc)
             self.session.add(user)
 
         self.session.commit()
@@ -312,7 +312,7 @@ class AuthService:
         token_hash = self._hash_token(token)
 
         # Set expiry (1 hour)
-        expires_at = datetime.utcnow() + timedelta(hours=1)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
 
         # Delete old reset tokens
         statement = select(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
@@ -326,7 +326,7 @@ class AuthService:
             user_id=user.id,  # type: ignore
             token_hash=token_hash,  # type: ignore
             expires_at=expires_at,  # type: ignore
-            created_at=datetime.utcnow(),  # type: ignore
+            created_at=datetime.now(timezone.utc),  # type: ignore
         )
 
         self.session.add(reset_token)
@@ -353,7 +353,7 @@ class AuthService:
 
         # Check if expired
         expires_at = reset_token.expires_at.replace(tzinfo=None) if reset_token.expires_at.tzinfo else reset_token.expires_at
-        if datetime.utcnow() > expires_at:
+        if datetime.now(timezone.utc) > expires_at:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Reset token has expired",
@@ -389,14 +389,14 @@ class AuthService:
         self.session.add(user)
 
         # Mark token as used
-        reset_token.used_at = datetime.utcnow()
+        reset_token.used_at = datetime.now(timezone.utc)
         self.session.add(reset_token)
 
         # Revoke all refresh token sessions
         statement = select(RefreshTokenSession).where(RefreshTokenSession.user_id == user.id)
         sessions = self.session.exec(statement).all()
         for session_obj in sessions:
-            session_obj.revoked_at = datetime.utcnow()
+            session_obj.revoked_at = datetime.now(timezone.utc)
             self.session.add(session_obj)
 
         self.session.commit()
@@ -411,7 +411,7 @@ class AuthService:
         access_token = self.jwt_service.generate_access_token(user.id, user.email, user.role)
 
         # Create refresh token session - type: ignore due to SQLModel Field aliases
-        expires_at = datetime.utcnow() + timedelta(days=7)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
 
         session_obj = RefreshTokenSession(
             id=uuid.uuid4(),
@@ -420,7 +420,7 @@ class AuthService:
             user_agent=user_agent,  # type: ignore
             ip_address=ip_address,  # type: ignore
             expires_at=expires_at,  # type: ignore
-            created_at=datetime.utcnow(),  # type: ignore
+            created_at=datetime.now(timezone.utc),  # type: ignore
         )
 
         self.session.add(session_obj)

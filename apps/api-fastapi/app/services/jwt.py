@@ -1,7 +1,7 @@
 """JWT token generation and verification service."""
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt
 
@@ -59,7 +59,7 @@ class JWTService:
         Returns:
             JWT access token
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         payload = {
             "sub": str(user_id),
             "email": email,
@@ -67,7 +67,8 @@ class JWTService:
             "iat": now,
             "exp": now + self.access_expiry,
         }
-        return jwt.encode(payload, self.access_secret, algorithm=self.algorithm)
+        # PyJWT type stubs are incomplete for key parameter
+        return jwt.encode(payload, self.access_secret, algorithm=self.algorithm)  # type: ignore[reportUnknownMemberType]
 
     def generate_refresh_token(
         self, user_id: uuid.UUID, session_id: uuid.UUID
@@ -82,14 +83,15 @@ class JWTService:
         Returns:
             JWT refresh token
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         payload = {
             "sub": str(user_id),
             "sessionId": str(session_id),
             "iat": now,
             "exp": now + self.refresh_expiry,
         }
-        return jwt.encode(payload, self.refresh_secret, algorithm=self.algorithm)
+        # PyJWT type stubs are incomplete for key parameter
+        return jwt.encode(payload, self.refresh_secret, algorithm=self.algorithm)  # type: ignore[reportUnknownMemberType]
 
     def verify_access_token(self, token: str) -> dict[str, str]:
         """
@@ -105,7 +107,8 @@ class JWTService:
             jwt.ExpiredSignatureError: If token is expired
             jwt.InvalidTokenError: If token is invalid
         """
-        payload = jwt.decode(
+        # PyJWT type stubs are incomplete for key parameter
+        payload = jwt.decode(  # type: ignore[reportUnknownMemberType]
             token, self.access_secret, algorithms=[self.algorithm]
         )
         return payload
@@ -124,7 +127,8 @@ class JWTService:
             jwt.ExpiredSignatureError: If token is expired
             jwt.InvalidTokenError: If token is invalid
         """
-        payload = jwt.decode(
+        # PyJWT type stubs are incomplete for key parameter
+        payload = jwt.decode(  # type: ignore[reportUnknownMemberType]
             token, self.refresh_secret, algorithms=[self.algorithm]
         )
         return payload

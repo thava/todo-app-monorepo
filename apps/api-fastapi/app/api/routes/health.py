@@ -1,6 +1,6 @@
 """Health check routes."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -22,7 +22,7 @@ def health() -> dict[str, str]:
     """
     return {
         "status": "ok",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
     }
 
 
@@ -40,7 +40,8 @@ def readiness(
     # Check database connectivity
     db_status = "ok"
     try:
-        session.execute(text("SELECT 1"))
+        # Use execute for raw SQL text() - exec() is for SQLModel selects only
+        session.execute(text("SELECT 1"))  # type: ignore[reportDeprecated]
     except Exception:
         db_status = "fail"
 
@@ -51,5 +52,5 @@ def readiness(
         "checks": {
             "database": db_status,
         },
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
     }

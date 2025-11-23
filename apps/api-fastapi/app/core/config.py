@@ -18,9 +18,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 def parse_cors(v: Any) -> list[str] | str:
     """Parse CORS origins from comma-separated string or list."""
     if isinstance(v, str) and not v.startswith("["):
+        # Parse comma-separated string into list
         return [i.strip() for i in v.split(",") if i.strip()]
-    elif isinstance(v, list | str):
-        return v
+    elif isinstance(v, (list, str)):
+        return v  # type: ignore[reportUnknownVariableType]
     raise ValueError(v)
 
 

@@ -1,6 +1,6 @@
 """User management routes (/me endpoints)."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -63,7 +63,7 @@ def update_profile(
     if update_dto.full_name is not None:
         current_user.full_name = update_dto.full_name
 
-    current_user.updated_at = datetime.utcnow()
+    current_user.updated_at = datetime.now(timezone.utc)
 
     session.add(current_user)
     session.commit()
@@ -120,7 +120,7 @@ def change_password(
 
     # Hash and update password
     user.password_hash_primary = password_service.hash_password(change_dto.new_password)
-    user.updated_at = datetime.utcnow()
+    user.updated_at = datetime.now(timezone.utc)
 
     session.add(user)
     session.commit()

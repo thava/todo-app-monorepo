@@ -2,7 +2,7 @@
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlmodel import Session, select
 
@@ -48,9 +48,9 @@ def create_sysadmin_user(session: Session, password_service: PasswordService) ->
         full_name="System Administrator",  # type: ignore
         password_hash_primary=password_hash,  # type: ignore
         role=RoleEnum.SYSADMIN,
-        email_verified_at=datetime.utcnow(),  # type: ignore - Auto-verify for dev
-        created_at=datetime.utcnow(),  # type: ignore
-        updated_at=datetime.utcnow(),  # type: ignore
+        email_verified_at=datetime.now(timezone.utc),  # type: ignore - Auto-verify for dev
+        created_at=datetime.now(timezone.utc),  # type: ignore
+        updated_at=datetime.now(timezone.utc),  # type: ignore
     )
 
     session.add(user)

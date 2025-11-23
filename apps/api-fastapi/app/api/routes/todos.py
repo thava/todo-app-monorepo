@@ -1,7 +1,7 @@
 """Todo management routes."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -46,8 +46,8 @@ def create_todo(
         description=create_dto.description,
         due_date=create_dto.due_date,
         priority=create_dto.priority or PriorityEnum.MEDIUM,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
 
     session.add(todo)
@@ -141,7 +141,7 @@ def update_todo(
     if update_dto.priority is not None:
         todo.priority = update_dto.priority
 
-    todo.updated_at = datetime.utcnow()
+    todo.updated_at = datetime.now(timezone.utc)
 
     session.add(todo)
     session.commit()

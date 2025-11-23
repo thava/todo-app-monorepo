@@ -1,7 +1,7 @@
 """Admin routes for user management."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -148,7 +148,7 @@ def update_user(
         if isinstance(update_dto.email_verified_at, str):
             # Handle "now" as a special value
             if update_dto.email_verified_at.lower() == "now":
-                user.email_verified_at = datetime.utcnow()
+                user.email_verified_at = datetime.now(timezone.utc)
             else:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -158,7 +158,7 @@ def update_user(
             # Can be datetime or None
             user.email_verified_at = update_dto.email_verified_at
 
-    user.updated_at = datetime.utcnow()
+    user.updated_at = datetime.now(timezone.utc)
 
     session.add(user)
     session.commit()

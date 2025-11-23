@@ -1,12 +1,12 @@
 """User-related database models."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from sqlalchemy import Column
 from sqlalchemy import Enum as SQLAlchemyEnum
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel  # type: ignore[reportUnknownVariableType]
 
 
 class RoleEnum(str, Enum):
@@ -28,11 +28,12 @@ class User(SQLModel, table=True):
     password_hash_primary: str
     role: RoleEnum = Field(
         default=RoleEnum.GUEST,
-        sa_column=Column(SQLAlchemyEnum(RoleEnum, values_callable=lambda x: [e.value for e in x]))
+        # SQLAlchemy enum requires values_callable - type stubs incomplete
+        sa_column=Column(SQLAlchemyEnum(RoleEnum, values_callable=lambda x: [e.value for e in x]))  # type: ignore[reportUnknownLambdaType, reportUnknownMemberType, reportUnknownVariableType]
     )
     email_verified_at: datetime | None = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class RefreshTokenSession(SQLModel, table=True):
@@ -47,7 +48,7 @@ class RefreshTokenSession(SQLModel, table=True):
     ip_address: str | None = Field(default=None, max_length=45)
     expires_at: datetime
     revoked_at: datetime | None = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class PasswordResetToken(SQLModel, table=True):
@@ -60,7 +61,7 @@ class PasswordResetToken(SQLModel, table=True):
     token_hash: str
     expires_at: datetime
     used_at: datetime | None = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class EmailVerificationToken(SQLModel, table=True):
@@ -73,4 +74,4 @@ class EmailVerificationToken(SQLModel, table=True):
     token_hash: str
     expires_at: datetime
     verified_at: datetime | None = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
