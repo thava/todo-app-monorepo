@@ -2,6 +2,7 @@
 
 import secrets
 from typing import Annotated, Any, Literal
+import os
 
 from pydantic import (
     AnyUrl,
@@ -32,7 +33,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_ignore_empty=True,
         extra="ignore",
-        case_sensitive=False,
+        # case_sensitive=False,
     )
 
     # Environment
@@ -41,8 +42,8 @@ class Settings(BaseSettings):
     # API Configuration
     PROJECT_NAME: str = "Todo App API"
     API_V1_STR: str = "/api/v1"
-    FASTAPI_PORT: int = 8000
-    FASTAPI_URL: str = "http://localhost:8000"
+    FASTAPI_PORT: int = int(os.getenv("FASTAPI_PORT", 8000))
+    FASTAPI_URL: str = os.getenv("FASTAPI_URL", f"http://localhost:{FASTAPI_PORT}")
 
     # CORS
     CORS_ALLOWED_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = []

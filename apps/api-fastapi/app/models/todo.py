@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlmodel import Field, SQLModel  # type: ignore[reportUnknownVariableType]
+from sqlmodel import Column, Enum as SQLEnum, Field, SQLModel  # type: ignore[reportUnknownVariableType]
 
 
 class PriorityEnum(str, Enum):
@@ -19,9 +19,18 @@ class PriorityEnum(str, Enum):
 class TodoBase(SQLModel):
     """Base todo properties shared across Todo table and API schemas."""
 
+    model_config = {"use_enum_values": True}
+
     description: str
     due_date: datetime | None = Field(default=None)
-    priority: PriorityEnum = Field(default=PriorityEnum.MEDIUM)
+    priority: PriorityEnum = Field(
+        default=PriorityEnum.MEDIUM,
+        sa_column=Column(
+            SQLEnum(PriorityEnum, values_callable=lambda x: [e.value for e in x]),
+            nullable=False,
+            server_default="medium"
+        )
+    )
 
 
 # Database model - table name explicitly set to match existing schema

@@ -13,7 +13,6 @@ from app.services.password import PasswordService
 
 logger = logging.getLogger(__name__)
 
-
 def create_sysadmin_user(session: Session, password_service: PasswordService) -> None:
     """Create sysadmin user if it doesn't exist (dev environment only)."""
     if settings.NODE_ENV != "development":
@@ -46,7 +45,7 @@ def create_sysadmin_user(session: Session, password_service: PasswordService) ->
         email=email,
         full_name="System Administrator",
         password_hash_primary=password_hash,
-        role=RoleEnum.SYSADMIN,
+        role="sysadmin",
         email_verified_at=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),

@@ -23,11 +23,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Create initial schema with snake_case columns."""
-    # Create enums
-    role_enum = postgresql.ENUM('guest', 'admin', 'sysadmin', name='role')
+    # Create enums (create_type=False prevents SQLAlchemy from trying to create them again)
+    role_enum = postgresql.ENUM('guest', 'admin', 'sysadmin', name='role', create_type=False)
     role_enum.create(op.get_bind(), checkfirst=True)
 
-    priority_enum = postgresql.ENUM('low', 'medium', 'high', name='priority')
+    priority_enum = postgresql.ENUM('low', 'medium', 'high', name='priority', create_type=False)
     priority_enum.create(op.get_bind(), checkfirst=True)
 
     # Create users table

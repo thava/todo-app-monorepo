@@ -6,6 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 from alembic import context
+import alembic_postgresql_enum
 
 # Import all models to ensure they are registered with SQLModel
 from app.models import (

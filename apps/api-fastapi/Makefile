@@ -1,54 +1,47 @@
-.PHONY: help install dev test test-cov lint format type-check db-up db-down db-reset migrate migrate-create init-db clean docker-build docker-up docker-down logs shell
+.PHONY: help install dev test test-cov lint format type-check db-up db-down db-reset migrate migrate-create init-db seed-demo  clean docker-build docker-up docker-down logs shell test test-cov
 
 # Default target
 .DEFAULT_GOAL := help
 
-# Colors for output
-BLUE := \033[0;34m
-GREEN := \033[0;32m
-YELLOW := \033[0;33m
-RED := \033[0;31m
-NC := \033[0m # No Color
-
 help: ## Show this help message
-	@echo "$(BLUE)FastAPI Todo App - Development Commands$(NC)"
+	@echo "FastAPI Todo App - Development Commands"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "%-20s %s\n", $$1, $$2}'
 
 # Installation
 install: ## Install dependencies
-	@echo "$(BLUE)Installing dependencies...$(NC)"
+	@echo "Installing dependencies..."
 	uv sync
 
 install-dev: ## Install dependencies including dev tools
-	@echo "$(BLUE)Installing dependencies with dev tools...$(NC)"
+	@echo "Installing dependencies with dev tools..."
 	uv sync --all-extras
 
 # Development
 dev: ## Start development server
-	@echo "$(GREEN)Starting development server...$(NC)"
+	@echo "Starting development server..."
 	uv run uvicorn app.main:app --reload --port 8000
 
 dev-https: ## Start development server with HTTPS
-	@echo "$(GREEN)Starting development server with HTTPS...$(NC)"
+	@echo "Starting development server with HTTPS..."
 	uv run uvicorn app.main:app --reload --port 8443 --ssl-keyfile=./certs/key.pem --ssl-certfile=./certs/cert.pem
 
 # Database
 db-up: ## Start PostgreSQL database (docker-compose)
-	@echo "$(GREEN)Starting PostgreSQL database...$(NC)"
+	@echo "Starting PostgreSQL database..."
 	docker-compose up -d db adminer
-	@echo "$(GREEN)Database available at localhost:5433$(NC)"
-	@echo "$(GREEN)Adminer available at http://localhost:8081$(NC)"
+	@echo "Database available at localhost:5433"
+	@echo "Adminer available at http://localhost:8081"
 
 db-down: ## Stop PostgreSQL database and adminer
-	@echo "$(YELLOW)Stopping PostgreSQL database and adminer...$(NC)"
+	@echo "Stopping PostgreSQL database and adminer..."
 	docker-compose stop db adminer
 
-db-reset: ## Reset database (drop and recreate)
-	@echo "$(RED)Resetting database...$(NC)"
+db-reset: ## Reset database (destroy and recreate with volumes)
+	@echo "Resetting database..."
 	docker-compose down -v
-	docker-compose up -d db
-	@echo "$(YELLOW)Waiting for database to be ready...$(NC)"
+	docker-compose up -d db adminer
+	@echo "Waiting for database to be ready..."
 	@sleep 5
 	$(MAKE) migrate
 	$(MAKE) init-db
@@ -58,15 +51,15 @@ db-logs: ## Show database logs
 
 # Migrations
 migrate: ## Run database migrations
-	@echo "$(BLUE)Running migrations...$(NC)"
+	@echo "Running migrations..."
 	uv run alembic upgrade head
 
 migrate-down: ## Rollback last migration
-	@echo "$(YELLOW)Rolling back last migration...$(NC)"
+	@echo "Rolling back last migration..."
 	uv run alembic downgrade -1
 
 migrate-create: ## Create new migration (usage: make migrate-create MSG="description")
-	@echo "$(BLUE)Creating new migration...$(NC)"
+	@echo "Creating new migration..."
 	uv run alembic revision --autogenerate -m "$(MSG)"
 
 migrate-history: ## Show migration history
@@ -74,68 +67,68 @@ migrate-history: ## Show migration history
 
 # Data
 init-db: ## Initialize database with default data
-	@echo "$(BLUE)Initializing database...$(NC)"
+	@echo "Initializing database..."
 	uv run python -m app.initial_data
 
 seed-demo: ## Seed database with demo data
-	@echo "$(BLUE)Seeding demo data...$(NC)"
+	@echo "Seeding demo data..."
 	uv run python scripts/seed_demo.py
 
 # Testing
 test: ## Run tests
-	@echo "$(BLUE)Running tests...$(NC)"
+	@echo "Running tests..."
 	uv run pytest
 
 test-cov: ## Run tests with coverage
-	@echo "$(BLUE)Running tests with coverage...$(NC)"
+	@echo "Running tests with coverage..."
 	uv run pytest --cov=app --cov-report=html --cov-report=term
 
 test-watch: ## Run tests in watch mode
-	@echo "$(BLUE)Running tests in watch mode...$(NC)"
+	@echo "Running tests in watch mode..."
 	uv run pytest-watch
 
 test-unit: ## Run unit tests only
-	@echo "$(BLUE)Running unit tests...$(NC)"
+	@echo "Running unit tests..."
 	uv run pytest tests/unit
 
 test-integration: ## Run integration tests only
-	@echo "$(BLUE)Running integration tests...$(NC)"
+	@echo "Running integration tests..."
 	uv run pytest tests/integration
 
 # Code Quality
 lint: ## Run linter (ruff)
-	@echo "$(BLUE)Running linter...$(NC)"
+	@echo "Running linter..."
 	uv run ruff check app
 
 lint-fix: ## Run linter and fix issues
-	@echo "$(BLUE)Running linter with auto-fix...$(NC)"
+	@echo "Running linter with auto-fix..."
 	uv run ruff check app --fix
 
 format: ## Format code
-	@echo "$(BLUE)Formatting code...$(NC)"
+	@echo "Formatting code..."
 	uv run ruff format app
 
 type-check: ## Run type checker (pyright)
-	@echo "$(BLUE)Running type checker...$(NC)"
+	@echo "Running type checker..."
 	uv run pyright app
 
 check-all: lint type-check test ## Run all checks (lint, type-check, test)
 
 # Docker
 docker-build: ## Build Docker image
-	@echo "$(BLUE)Building Docker image...$(NC)"
+	@echo "Building Docker image..."
 	docker build -t todo-fastapi:latest .
 
 docker-up: ## Start all services (docker-compose)
-	@echo "$(GREEN)Starting all services...$(NC)"
+	@echo "Starting all services..."
 	docker-compose up -d
-	@echo "$(GREEN)Services started:$(NC)"
+	@echo "Services started:"
 	@echo "  - API: http://localhost:8000"
 	@echo "  - Adminer: http://localhost:8081"
 	@echo "  - Database: localhost:5433"
 
 docker-down: ## Stop all services
-	@echo "$(YELLOW)Stopping all services...$(NC)"
+	@echo "Stopping all services..."
 	docker-compose down
 
 docker-logs: ## Show docker logs
@@ -145,11 +138,11 @@ docker-restart: docker-down docker-up ## Restart all services
 
 # Utilities
 shell: ## Open Python shell with app context
-	@echo "$(BLUE)Opening Python shell...$(NC)"
+	@echo "Opening Python shell..."
 	uv run python scripts/shell.py
 
 shell-db: ## Open database shell
-	@echo "$(BLUE)Opening database shell...$(NC)"
+	@echo "Opening database shell..."
 	docker-compose exec db psql -U todo_user -d todo_fastapi_dev
 
 logs: ## Show application logs
@@ -157,7 +150,7 @@ logs: ## Show application logs
 
 # Cleanup
 clean: ## Clean cache and temporary files
-	@echo "$(YELLOW)Cleaning up...$(NC)"
+	@echo "Cleaning up..."
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
@@ -165,16 +158,16 @@ clean: ## Clean cache and temporary files
 	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name ".coverage" -delete
-	@echo "$(GREEN)Cleanup complete!$(NC)"
+	@echo "Cleanup complete!"
 
 clean-all: clean db-down ## Clean everything including docker volumes
-	@echo "$(RED)Cleaning all including docker volumes...$(NC)"
+	@echo "Cleaning all including docker volumes..."
 	docker-compose down -v
 	rm -rf .venv
 
 # Documentation
 docs: ## Generate API documentation
-	@echo "$(BLUE)API documentation available at:$(NC)"
+	@echo "API documentation available at:"
 	@echo "  - Swagger UI: http://localhost:8000/docs"
 	@echo "  - ReDoc: http://localhost:8000/redoc"
 
@@ -186,5 +179,5 @@ down: db-down ## Quick teardown
 restart: down up ## Restart everything
 
 status: ## Show status of services
-	@echo "$(BLUE)Service Status:$(NC)"
+	@echo "Service Status:"
 	@docker-compose ps

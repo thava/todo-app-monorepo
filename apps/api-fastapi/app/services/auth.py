@@ -177,7 +177,7 @@ class AuthService:
             )
 
         # Check if session is expired
-        expires_at = session_obj.expires_at.replace(tzinfo=None) if session_obj.expires_at.tzinfo else session_obj.expires_at
+        expires_at = session_obj.expires_at if session_obj.expires_at.tzinfo else session_obj.expires_at.replace(tzinfo=timezone.utc)
         if datetime.now(timezone.utc) > expires_at:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -234,7 +234,7 @@ class AuthService:
             )
 
         # Check if expired
-        expires_at = verification_token.expires_at.replace(tzinfo=None) if verification_token.expires_at.tzinfo else verification_token.expires_at
+        expires_at = verification_token.expires_at if verification_token.expires_at.tzinfo else verification_token.expires_at.replace(tzinfo=timezone.utc)
         if datetime.now(timezone.utc) > expires_at:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -351,7 +351,7 @@ class AuthService:
             )
 
         # Check if expired
-        expires_at = reset_token.expires_at.replace(tzinfo=None) if reset_token.expires_at.tzinfo else reset_token.expires_at
+        expires_at = reset_token.expires_at if reset_token.expires_at.tzinfo else reset_token.expires_at.replace(tzinfo=timezone.utc)
         if datetime.now(timezone.utc) > expires_at:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

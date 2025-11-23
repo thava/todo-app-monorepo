@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlmodel import Field, SQLModel  # type: ignore[reportUnknownVariableType]
+from sqlmodel import Column, Enum as SQLEnum, Field, SQLModel  # type: ignore[reportUnknownVariableType]
 
 
 class RoleEnum(str, Enum):
@@ -14,14 +14,21 @@ class RoleEnum(str, Enum):
     ADMIN = "admin"
     SYSADMIN = "sysadmin"
 
-
 # Shared properties for User model
 class UserBase(SQLModel):
     """Base user properties shared across User table and API schemas."""
 
+    # model_config = {"use_enum_values": True}
+
     email: str = Field(unique=True, index=True, max_length=255)
     full_name: str = Field(max_length=255)
-    role: RoleEnum = Field(default=RoleEnum.GUEST)
+    role: RoleEnum = Field(
+        default=RoleEnum.GUEST,
+        sa_column=Column(
+            SQLEnum(RoleEnum, values_callable=lambda x: [e.value for e in x]),
+            nullable=False
+        )
+    )
 
 
 # Database model - table name explicitly set to match existing schema
