@@ -28,10 +28,10 @@ def get_profile(
     return UserInfo(
         id=current_user.id,
         email=current_user.email,
-        fullName=current_user.full_name,
+        full_name=current_user.full_name,
         role=current_user.role.value,
-        emailVerified=bool(current_user.email_verified_at),
-        emailVerifiedAt=current_user.email_verified_at,
+        email_verified=bool(current_user.email_verified_at),
+        email_verified_at=current_user.email_verified_at,
     )
 
 
@@ -60,8 +60,8 @@ def update_profile(
         # Reset email verification when email changes
         current_user.email_verified_at = None
 
-    if update_dto.fullName is not None:
-        current_user.full_name = update_dto.fullName
+    if update_dto.full_name is not None:
+        current_user.full_name = update_dto.full_name
 
     current_user.updated_at = datetime.utcnow()
 
@@ -72,10 +72,10 @@ def update_profile(
     return UserInfo(
         id=current_user.id,
         email=current_user.email,
-        fullName=current_user.full_name,
+        full_name=current_user.full_name,
         role=current_user.role.value,
-        emailVerified=bool(current_user.email_verified_at),
-        emailVerifiedAt=current_user.email_verified_at,
+        email_verified=bool(current_user.email_verified_at),
+        email_verified_at=current_user.email_verified_at,
     )
 
 
@@ -104,7 +104,7 @@ def change_password(
     # Verify current password
     if not password_service.verify_password(
         user.password_hash_primary,
-        change_dto.currentPassword,
+        change_dto.current_password,
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -112,14 +112,14 @@ def change_password(
         )
 
     # Validate new password strength
-    if len(change_dto.newPassword) < 8:
+    if len(change_dto.new_password) < 8:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="New password must be at least 8 characters",
         )
 
     # Hash and update password
-    user.password_hash_primary = password_service.hash_password(change_dto.newPassword)
+    user.password_hash_primary = password_service.hash_password(change_dto.new_password)
     user.updated_at = datetime.utcnow()
 
     session.add(user)

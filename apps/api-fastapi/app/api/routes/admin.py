@@ -21,11 +21,11 @@ def _user_to_response(user: User) -> UserResponseDto:
     return UserResponseDto(
         id=user.id,
         email=user.email,
-        fullName=user.full_name,
+        full_name=user.full_name,
         role=user.role.value,
-        emailVerifiedAt=user.email_verified_at,
-        createdAt=user.created_at,
-        updatedAt=user.updated_at,
+        email_verified_at=user.email_verified_at,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
     )
 
 
@@ -123,8 +123,8 @@ def update_user(
             )
         user.password_hash_primary = password_service.hash_password(update_dto.password)
 
-    if update_dto.fullName is not None:
-        user.full_name = update_dto.fullName
+    if update_dto.full_name is not None:
+        user.full_name = update_dto.full_name
 
     if update_dto.role is not None:
         try:
@@ -144,10 +144,10 @@ def update_user(
 
         user.role = new_role
 
-    if "emailVerifiedAt" in update_dto.model_fields_set:
-        if isinstance(update_dto.emailVerifiedAt, str):
+    if "email_verified_at" in update_dto.model_fields_set:
+        if isinstance(update_dto.email_verified_at, str):
             # Handle "now" as a special value
-            if update_dto.emailVerifiedAt.lower() == "now":
+            if update_dto.email_verified_at.lower() == "now":
                 user.email_verified_at = datetime.utcnow()
             else:
                 raise HTTPException(
@@ -156,7 +156,7 @@ def update_user(
                 )
         else:
             # Can be datetime or None
-            user.email_verified_at = update_dto.emailVerifiedAt
+            user.email_verified_at = update_dto.email_verified_at
 
     user.updated_at = datetime.utcnow()
 

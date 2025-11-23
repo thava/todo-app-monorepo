@@ -45,10 +45,9 @@ reportMissingTypeStubs = false
 reportUnusedImport = true
 reportUnusedVariable = true
 pythonVersion = "3.10"
-# SQLAlchemy/SQLModel type stub limitations
-reportAttributeAccessIssue = false  # SQLAlchemy column methods like is_()
-reportOptionalMemberAccess = false  # SQLAlchemy nullable columns
-reportCallIssue = false  # SQLModel field aliases and session.execute with text()
+# Enable strict type checking - use inline suppressions for known ORM limitations
+# This ensures new code is type-checked properly while allowing targeted suppressions
+# for SQLModel/SQLAlchemy/Pydantic patterns that have type stub limitations
 
 [tool.ruff]
 target-version = "py310"

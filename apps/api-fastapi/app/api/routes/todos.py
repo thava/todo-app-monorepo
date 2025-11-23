@@ -20,12 +20,12 @@ def _todo_to_response(todo: Todo) -> TodoResponseDto:
     """Convert Todo model to response DTO."""
     return TodoResponseDto(
         id=todo.id,
-        ownerId=todo.owner_id,
+        owner_id=todo.owner_id,
         description=todo.description,
-        dueDate=todo.due_date,
+        due_date=todo.due_date,
         priority=todo.priority.value,
-        createdAt=todo.created_at,
-        updatedAt=todo.updated_at,
+        created_at=todo.created_at,
+        updated_at=todo.updated_at,
     )
 
 
@@ -44,7 +44,7 @@ def create_todo(
         id=uuid.uuid4(),
         owner_id=current_user.id,
         description=create_dto.description,
-        due_date=create_dto.dueDate,
+        due_date=create_dto.due_date,
         priority=create_dto.priority or PriorityEnum.MEDIUM,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
@@ -136,8 +136,8 @@ def update_todo(
     # Update fields
     if update_dto.description is not None:
         todo.description = update_dto.description
-    if update_dto.dueDate is not None:
-        todo.due_date = update_dto.dueDate
+    if update_dto.due_date is not None:
+        todo.due_date = update_dto.due_date
     if update_dto.priority is not None:
         todo.priority = update_dto.priority
 

@@ -18,23 +18,17 @@ class PriorityEnum(str, Enum):
 
 
 class Todo(SQLModel, table=True):
-    """Todo model."""
+    """Todo model - uses snake_case to follow Python and SQL conventions."""
 
     __tablename__ = "todos"  # type: ignore[assignment]
 
-    model_config = {"populate_by_name": True}  # type: ignore[assignment]
-
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    owner_id: uuid.UUID = Field(foreign_key="users.id", alias="ownerId", sa_column_kwargs={"name": "ownerId"})
+    owner_id: uuid.UUID = Field(foreign_key="users.id")
     description: str
-    due_date: datetime | None = Field(default=None, alias="dueDate", sa_column_kwargs={"name": "dueDate"})
+    due_date: datetime | None = Field(default=None)
     priority: PriorityEnum = Field(
         default=PriorityEnum.MEDIUM,
         sa_column=Column(SQLAlchemyEnum(PriorityEnum, values_callable=lambda x: [e.value for e in x]))
     )
-    created_at: datetime = Field(
-        default_factory=datetime.utcnow, alias="createdAt", sa_column_kwargs={"name": "createdAt"}
-    )
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, alias="updatedAt", sa_column_kwargs={"name": "updatedAt"}
-    )
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

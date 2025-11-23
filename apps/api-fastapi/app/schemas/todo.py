@@ -3,19 +3,20 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.models.todo import PriorityEnum
+from app.schemas.base import CamelCaseModel
 
 
-class CreateTodoDto(BaseModel):
-    """Create todo request schema."""
+class CreateTodoDto(CamelCaseModel):
+    """Create todo request schema - accepts camelCase."""
 
     description: str = Field(
         description="Description of the todo item",
         examples=["Buy groceries for the week"],
     )
-    dueDate: datetime | None = Field(
+    due_date: datetime | None = Field(  # snake_case in Python, camelCase in API
         default=None,
         description="Due date for the todo item",
         examples=["2025-12-31T23:59:59.000Z"],
@@ -27,15 +28,15 @@ class CreateTodoDto(BaseModel):
     )
 
 
-class UpdateTodoDto(BaseModel):
-    """Update todo request schema."""
+class UpdateTodoDto(CamelCaseModel):
+    """Update todo request schema - accepts camelCase."""
 
     description: str | None = Field(
         default=None,
         description="Description of the todo item",
         examples=["Buy groceries for the week"],
     )
-    dueDate: datetime | None = Field(
+    due_date: datetime | None = Field(
         default=None,
         description="Due date for the todo item",
         examples=["2025-12-31T23:59:59.000Z"],
@@ -47,13 +48,13 @@ class UpdateTodoDto(BaseModel):
     )
 
 
-class TodoResponseDto(BaseModel):
-    """Todo response schema."""
+class TodoResponseDto(CamelCaseModel):
+    """Todo response schema - auto-converts to camelCase."""
 
     id: uuid.UUID
-    ownerId: uuid.UUID
+    owner_id: uuid.UUID
     description: str
-    dueDate: datetime | None
+    due_date: datetime | None
     priority: str
-    createdAt: datetime
-    updatedAt: datetime
+    created_at: datetime
+    updated_at: datetime

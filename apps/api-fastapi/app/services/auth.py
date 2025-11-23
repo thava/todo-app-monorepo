@@ -74,11 +74,11 @@ class AuthService:
         # Hash password
         password_hash = self.password_service.hash_password(register_dto.password)
 
-        # Create user
+        # Create user with snake_case fields
         new_user = User(
             id=uuid.uuid4(),
             email=normalized_email,
-            full_name=register_dto.fullName.strip(),
+            full_name=register_dto.full_name.strip(),
             password_hash_primary=password_hash,
             role=register_dto.role,
             email_verified_at=datetime.utcnow() if register_dto.autoverify else None,
@@ -92,13 +92,14 @@ class AuthService:
 
         # TODO: Send verification email if not autoverified
 
+        # DTO will auto-convert to camelCase for API response
         return RegisterResponseDto(
             user=RegisteredUserInfo(
                 id=new_user.id,
                 email=new_user.email,
-                fullName=new_user.full_name,
+                full_name=new_user.full_name,
                 role=new_user.role.value,
-                emailVerified=register_dto.autoverify,
+                email_verified=register_dto.autoverify,
             )
         )
 
@@ -319,13 +320,13 @@ class AuthService:
         for old_token in old_tokens:
             self.session.delete(old_token)
 
-        # Create new token
+        # Create new token - type: ignore due to SQLModel Field aliases
         reset_token = PasswordResetToken(
             id=uuid.uuid4(),
-            user_id=user.id,
-            token_hash=token_hash,
-            expires_at=expires_at,
-            created_at=datetime.utcnow(),
+            user_id=user.id,  # type: ignore
+            token_hash=token_hash,  # type: ignore
+            expires_at=expires_at,  # type: ignore
+            created_at=datetime.utcnow(),  # type: ignore
         )
 
         self.session.add(reset_token)
@@ -340,7 +341,7 @@ class AuthService:
         # Find token
         statement = select(PasswordResetToken).where(
             PasswordResetToken.token_hash == token_hash,
-            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.used_at.is_(None),  # type: ignore[attr-defined]
         )
         reset_token = self.session.exec(statement).first()
 
@@ -409,17 +410,17 @@ class AuthService:
         # Generate access token
         access_token = self.jwt_service.generate_access_token(user.id, user.email, user.role)
 
-        # Create refresh token session
+        # Create refresh token session - type: ignore due to SQLModel Field aliases
         expires_at = datetime.utcnow() + timedelta(days=7)
 
         session_obj = RefreshTokenSession(
             id=uuid.uuid4(),
-            user_id=user.id,
-            refresh_token_hash="",  # Will be updated below
-            user_agent=user_agent,
-            ip_address=ip_address,
-            expires_at=expires_at,
-            created_at=datetime.utcnow(),
+            user_id=user.id,  # type: ignore
+            refresh_token_hash="",  # type: ignore - Will be updated below
+            user_agent=user_agent,  # type: ignore
+            ip_address=ip_address,  # type: ignore
+            expires_at=expires_at,  # type: ignore
+            created_at=datetime.utcnow(),  # type: ignore
         )
 
         self.session.add(session_obj)
@@ -434,15 +435,15 @@ class AuthService:
         self.session.commit()
 
         return AuthResponseDto(
-            accessToken=access_token,
-            refreshToken=refresh_token,
+            access_token=access_token,
+            refresh_token=refresh_token,
             user=UserInfo(
                 id=user.id,
                 email=user.email,
-                fullName=user.full_name,
+                full_name=user.full_name,
                 role=user.role.value,
-                emailVerified=bool(user.email_verified_at),
-                emailVerifiedAt=user.email_verified_at,
+                email_verified=bool(user.email_verified_at),
+                email_verified_at=user.email_verified_at,
             ),
         )
 

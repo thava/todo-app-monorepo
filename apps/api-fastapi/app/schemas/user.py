@@ -3,18 +3,20 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from app.schemas.base import CamelCaseModel
 
 
-class UpdateProfileDto(BaseModel):
-    """Update profile request schema."""
+class UpdateProfileDto(CamelCaseModel):
+    """Update profile request schema - uses snake_case internally, accepts/returns camelCase."""
 
     email: str | None = Field(
         default=None,
         description="User email address",
         examples=["user@example.com"],
     )
-    fullName: str | None = Field(
+    full_name: str | None = Field(
         default=None,
         min_length=1,
         max_length=255,
@@ -23,14 +25,14 @@ class UpdateProfileDto(BaseModel):
     )
 
 
-class ChangePasswordDto(BaseModel):
-    """Change password request schema."""
+class ChangePasswordDto(CamelCaseModel):
+    """Change password request schema - uses snake_case internally, accepts/returns camelCase."""
 
-    currentPassword: str = Field(
+    current_password: str = Field(
         description="Current password",
         examples=["oldPassword123!"],
     )
-    newPassword: str = Field(
+    new_password: str = Field(
         min_length=8,
         max_length=128,
         description="New password (minimum 8 characters)",
@@ -38,29 +40,29 @@ class ChangePasswordDto(BaseModel):
     )
 
 
-class UserResponseDto(BaseModel):
-    """User response schema for admin endpoints."""
+class UserResponseDto(CamelCaseModel):
+    """User response schema for admin endpoints - auto-converts to camelCase."""
 
     id: uuid.UUID = Field(description="User ID", examples=["uuid-123"])
     email: str = Field(description="User email address", examples=["user@example.com"])
-    fullName: str = Field(description="User full name", examples=["John Doe"])
+    full_name: str = Field(description="User full name", examples=["John Doe"])
     role: str = Field(description="User role", examples=["guest"])
-    emailVerifiedAt: datetime | None = Field(
+    email_verified_at: datetime | None = Field(
         description="Email verification timestamp",
         examples=["2025-01-01T00:00:00.000Z"],
     )
-    createdAt: datetime = Field(
+    created_at: datetime = Field(
         description="User creation timestamp",
         examples=["2025-01-01T00:00:00.000Z"],
     )
-    updatedAt: datetime = Field(
+    updated_at: datetime = Field(
         description="User last update timestamp",
         examples=["2025-01-01T00:00:00.000Z"],
     )
 
 
-class UpdateUserDto(BaseModel):
-    """Update user request schema (admin only)."""
+class UpdateUserDto(CamelCaseModel):
+    """Update user request schema (admin only) - uses snake_case internally, accepts/returns camelCase."""
 
     email: str | None = Field(
         default=None,
@@ -74,7 +76,7 @@ class UpdateUserDto(BaseModel):
         description="User password (minimum 8 characters)",
         examples=["newPassword123"],
     )
-    fullName: str | None = Field(
+    full_name: str | None = Field(
         default=None,
         min_length=1,
         max_length=255,
@@ -86,7 +88,7 @@ class UpdateUserDto(BaseModel):
         description="User role",
         examples=["guest"],
     )
-    emailVerifiedAt: datetime | str | None = Field(
+    email_verified_at: datetime | str | None = Field(
         default=None,
         description="Email verification timestamp (ISO 8601 format, 'now' for current time, or null to unverify)",
         examples=["2025-01-01T00:00:00.000Z", "now"],

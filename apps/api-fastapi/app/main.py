@@ -29,6 +29,9 @@ app = FastAPI(
     version="1.0",
 )
 
+# To disable /docs and /redoc you can do:
+# app = FastAPI(docs_url=None, redoc_url=None)
+
 # Configure CORS
 if settings.all_cors_origins:
     app.add_middleware(

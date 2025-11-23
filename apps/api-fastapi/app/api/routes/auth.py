@@ -73,7 +73,7 @@ def refresh(
     user_agent = request.headers.get("user-agent")
     ip_address = request.client.host if request.client else None
 
-    return auth_service.refresh_access_token(refresh_dto.refreshToken, user_agent, ip_address)
+    return auth_service.refresh_access_token(refresh_dto.refresh_token, user_agent, ip_address)
 
 
 @router.post("/logout")
@@ -88,7 +88,7 @@ def logout(
     Invalidates the refresh token and logs out the user.
     """
     auth_service = AuthService(session)
-    auth_service.logout(refresh_dto.refreshToken)
+    auth_service.logout(refresh_dto.refresh_token)
     return {"message": "Logged out successfully"}
 
 
@@ -147,5 +147,5 @@ def reset_password(
     Resets user password using the token received via email.
     """
     auth_service = AuthService(session)
-    auth_service.reset_password(reset_dto.token, reset_dto.newPassword)
+    auth_service.reset_password(reset_dto.token, reset_dto.new_password)
     return {"message": "Password reset successfully"}

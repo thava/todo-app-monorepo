@@ -40,9 +40,9 @@ db-up: ## Start PostgreSQL database (docker-compose)
 	@echo "$(GREEN)Database available at localhost:5433$(NC)"
 	@echo "$(GREEN)Adminer available at http://localhost:8081$(NC)"
 
-db-down: ## Stop PostgreSQL database
-	@echo "$(YELLOW)Stopping PostgreSQL database...$(NC)"
-	docker-compose down
+db-down: ## Stop PostgreSQL database and adminer
+	@echo "$(YELLOW)Stopping PostgreSQL database and adminer...$(NC)"
+	docker-compose stop db adminer
 
 db-reset: ## Reset database (drop and recreate)
 	@echo "$(RED)Resetting database...$(NC)"

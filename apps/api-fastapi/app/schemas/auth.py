@@ -6,10 +6,11 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 
 from app.models.user import RoleEnum
+from app.schemas.base import CamelCaseModel
 
 
-class RegisterDto(BaseModel):
-    """Registration request schema."""
+class RegisterDto(CamelCaseModel):
+    """Registration request schema - accepts and returns camelCase."""
 
     email: EmailStr = Field(description="User email address", examples=["newuser@example.com"])
     password: str = Field(
@@ -18,7 +19,7 @@ class RegisterDto(BaseModel):
         description="User password (minimum 8 characters)",
         examples=["securePassword123"],
     )
-    fullName: str = Field(
+    full_name: str = Field(  # snake_case in Python, camelCase in API
         min_length=1,
         max_length=255,
         description="User full name",
@@ -36,14 +37,14 @@ class RegisterDto(BaseModel):
     )
 
 
-class RegisteredUserInfo(BaseModel):
-    """Registered user information."""
+class RegisteredUserInfo(CamelCaseModel):
+    """Registered user information - auto-converts to camelCase."""
 
     id: uuid.UUID = Field(description="User ID", examples=["uuid-123"])
     email: str = Field(description="User email", examples=["newuser@example.com"])
-    fullName: str = Field(description="User full name", examples=["John Doe"])
+    full_name: str = Field(description="User full name", examples=["John Doe"])
     role: str = Field(description="User role", examples=["guest"])
-    emailVerified: bool = Field(description="Email verification status", examples=[False])
+    email_verified: bool = Field(description="Email verification status", examples=[False])
 
 
 class RegisterResponseDto(BaseModel):
@@ -59,39 +60,39 @@ class LoginDto(BaseModel):
     password: str = Field(description="User password", examples=["securePassword123"])
 
 
-class UserInfo(BaseModel):
-    """User information in auth response."""
+class UserInfo(CamelCaseModel):
+    """User information in auth response - auto-converts to camelCase."""
 
     id: uuid.UUID = Field(description="User ID", examples=["uuid-123"])
     email: str = Field(description="User email", examples=["user@example.com"])
-    fullName: str = Field(description="User full name", examples=["John Doe"])
+    full_name: str = Field(description="User full name", examples=["John Doe"])
     role: str = Field(description="User role", examples=["guest"])
-    emailVerified: bool = Field(description="Email verification status", examples=[True])
-    emailVerifiedAt: datetime | None = Field(
+    email_verified: bool = Field(description="Email verification status", examples=[True])
+    email_verified_at: datetime | None = Field(
         default=None,
         description="Email verification timestamp",
         examples=["2025-01-01T00:00:00.000Z"],
     )
 
 
-class AuthResponseDto(BaseModel):
-    """Authentication response with tokens."""
+class AuthResponseDto(CamelCaseModel):
+    """Authentication response with tokens - auto-converts to camelCase."""
 
-    accessToken: str = Field(
+    access_token: str = Field(
         description="JWT access token",
         examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."],
     )
-    refreshToken: str = Field(
+    refresh_token: str = Field(
         description="JWT refresh token",
         examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."],
     )
     user: UserInfo = Field(description="User information")
 
 
-class RefreshTokenDto(BaseModel):
-    """Refresh token request schema."""
+class RefreshTokenDto(CamelCaseModel):
+    """Refresh token request schema - accepts camelCase."""
 
-    refreshToken: str = Field(
+    refresh_token: str = Field(
         description="Refresh token received from login or previous refresh",
         examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."],
     )
@@ -106,14 +107,14 @@ class RequestPasswordResetDto(BaseModel):
     )
 
 
-class ResetPasswordDto(BaseModel):
-    """Password reset schema."""
+class ResetPasswordDto(CamelCaseModel):
+    """Password reset schema - accepts camelCase."""
 
     token: str = Field(
         description="Password reset token received via email",
         examples=["abc123def456"],
     )
-    newPassword: str = Field(
+    new_password: str = Field(
         min_length=8,
         description="New password (minimum 8 characters)",
         examples=["newSecurePassword123"],
