@@ -320,13 +320,12 @@ class AuthService:
         for old_token in old_tokens:
             self.session.delete(old_token)
 
-        # Create new token - type: ignore due to SQLModel Field aliases
         reset_token = PasswordResetToken(
             id=uuid.uuid4(),
-            user_id=user.id,  # type: ignore
-            token_hash=token_hash,  # type: ignore
-            expires_at=expires_at,  # type: ignore
-            created_at=datetime.now(timezone.utc),  # type: ignore
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+            created_at=datetime.now(timezone.utc),
         )
 
         self.session.add(reset_token)
@@ -410,17 +409,16 @@ class AuthService:
         # Generate access token
         access_token = self.jwt_service.generate_access_token(user.id, user.email, user.role)
 
-        # Create refresh token session - type: ignore due to SQLModel Field aliases
         expires_at = datetime.now(timezone.utc) + timedelta(days=7)
 
         session_obj = RefreshTokenSession(
             id=uuid.uuid4(),
-            user_id=user.id,  # type: ignore
-            refresh_token_hash="",  # type: ignore - Will be updated below
-            user_agent=user_agent,  # type: ignore
-            ip_address=ip_address,  # type: ignore
-            expires_at=expires_at,  # type: ignore
-            created_at=datetime.now(timezone.utc),  # type: ignore
+            user_id=user.id,
+            refresh_token_hash="",
+            user_agent=user_agent,
+            ip_address=ip_address,
+            expires_at=expires_at,
+            created_at=datetime.now(timezone.utc),
         )
 
         self.session.add(session_obj)

@@ -4,8 +4,6 @@ import uuid
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import Column
-from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlmodel import Field, SQLModel  # type: ignore[reportUnknownVariableType]
 
 
@@ -17,20 +15,23 @@ class RoleEnum(str, Enum):
     SYSADMIN = "sysadmin"
 
 
-class User(SQLModel, table=True):
+# Shared properties for User model
+class UserBase(SQLModel):
+    """Base user properties shared across User table and API schemas."""
+
+    email: str = Field(unique=True, index=True, max_length=255)
+    full_name: str = Field(max_length=255)
+    role: RoleEnum = Field(default=RoleEnum.GUEST)
+
+
+# Database model - table name explicitly set to match existing schema
+class User(UserBase, table=True):
     """User model - uses snake_case to follow Python and SQL conventions."""
 
     __tablename__ = "users"  # type: ignore[assignment]
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    email: str = Field(unique=True, index=True, max_length=255)
-    full_name: str = Field(max_length=255)
     password_hash_primary: str
-    role: RoleEnum = Field(
-        default=RoleEnum.GUEST,
-        # SQLAlchemy enum requires values_callable - type stubs incomplete
-        sa_column=Column(SQLAlchemyEnum(RoleEnum, values_callable=lambda x: [e.value for e in x]))  # type: ignore[reportUnknownLambdaType, reportUnknownMemberType, reportUnknownVariableType]
-    )
     email_verified_at: datetime | None = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

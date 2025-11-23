@@ -41,16 +41,15 @@ def create_sysadmin_user(session: Session, password_service: PasswordService) ->
     # Hash password
     password_hash = password_service.hash_password(password)
 
-    # Create sysadmin user - type: ignore due to SQLModel Field aliases
     user = User(
         id=uuid.uuid4(),
         email=email,
-        full_name="System Administrator",  # type: ignore
-        password_hash_primary=password_hash,  # type: ignore
+        full_name="System Administrator",
+        password_hash_primary=password_hash,
         role=RoleEnum.SYSADMIN,
-        email_verified_at=datetime.now(timezone.utc),  # type: ignore - Auto-verify for dev
-        created_at=datetime.now(timezone.utc),  # type: ignore
-        updated_at=datetime.now(timezone.utc),  # type: ignore
+        email_verified_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
 
     session.add(user)
