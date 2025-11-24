@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{ "path": "." },
+		{ "path": "./apps/api-fastapi" },
+		{ "path": "./apps/api-flask" }
+	],
+	"settings": {
+     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
+	}
+}

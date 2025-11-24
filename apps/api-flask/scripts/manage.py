@@ -43,7 +43,7 @@ else:
     click.echo(f"⚠ No .env file found at {env_path}, using existing environment variables")
 
 # Configuration
-API_URL = os.getenv('FLASKAPI_URL', 'http://localhost:5000')
+API_URL = os.getenv('FLASK_API_URL', 'http://localhost:5000')
 TOKEN_FILE = Path.cwd() / '.dev-tokens.json'
 
 # Colors for terminal output

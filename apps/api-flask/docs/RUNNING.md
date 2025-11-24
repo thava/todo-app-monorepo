@@ -69,7 +69,6 @@ The server respects these environment variables:
 - `FLASK_ENV` - Environment (development/production)
 - `FLASK_DEBUG` - Enable debug mode (0/1)
 - `DATABASE_URL` - PostgreSQL connection string
-- `FLASKAPI_URL` - Base URL for the API
 
 These are read from the root `.env` file or can be set directly:
 

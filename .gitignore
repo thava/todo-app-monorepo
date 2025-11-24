@@ -34,6 +34,8 @@ lerna-debug.log*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+# VS Code workspace (personal)
+*.code-workspace
 
 # Environment variables
 .env
@@ -42,6 +44,9 @@ lerna-debug.log*
 .env.development.local
 .env.test
 .env.production
+
+# venv
+.venv
 
 # Docker volumes
 postgres_data
@@ -52,7 +57,11 @@ pgadmin_data
 *.swo
 *~
 debug/
+tmp/
+temp/
 
 # Development utilities
 .dev-tokens.json
 .claude/*
+CLAUDE.md
+.claudeignore

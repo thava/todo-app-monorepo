@@ -26,7 +26,7 @@ python scripts/manage.py [COMMAND] [OPTIONS]
 ### Configuration
 
 The script automatically loads environment variables from the root `.env` file:
-- `FLASKAPI_URL`: API URL (default: `http://localhost:5000`)
+- `FLASK_PORT`: Default 5000 : URL `http://localhost:5000`
 - `DEMO_DOMAIN`: Domain for demo users (default: `mydomain.com`)
 - `DEMO_PASSWORD`: Password for demo users (default: `mypassword`)
 - `DEMO_USERS`: Comma-separated list of demo users (default: `guest1,admin1,sysadmin1`)
