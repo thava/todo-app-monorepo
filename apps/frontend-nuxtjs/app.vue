@@ -1,5 +1,6 @@
 <template>
   <div>
-    My Nuxt Application placeholder
+    <NuxtPage />
+    <Toast />
   </div>
 </template>
