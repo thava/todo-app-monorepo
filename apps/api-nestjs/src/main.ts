@@ -7,6 +7,8 @@ import { stringify } from 'yaml';
 import * as path from 'path';
 import * as fs from 'fs';
 
+// import * as express from 'express';
+
 function setupDocs(app: INestApplication) {
   const config = new DocumentBuilder()
     .setTitle('Todo App API')
@@ -72,13 +74,17 @@ async function bootstrap() {
   // Enable CORS
   const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
     ? process.env.CORS_ALLOWED_ORIGINS.split(',')
-    : ['http://localhost:4000', 'http://localhost:3000'];
+    : ['http://localhost:4000',
+       'http://localhost:4200',
+       'http://localhost:4400',
+       'http://localhost:3000'];
 
   app.enableCors({
     origin: allowedOrigins,
     credentials: false,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: '*',
+    // allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Global validation pipe
@@ -92,6 +98,16 @@ async function bootstrap() {
 
   // Setup API documentation
   setupDocs(app);
+
+  // Log requests 
+  // app.use(express.json());
+  // app.use(express.urlencoded({ extended: true }));
+
+  // app.use((req, _, next) => {
+  //   // console.log(`[REQ] ${req.method} ${req.url}`);
+  //   console.log(`[REQ] `, req.body);
+  //   next();
+  // });
 
   // Use NESTJS_PORT, fallback to PORT, then default to 3000
   const port = process.env.NESTJS_PORT || process.env.PORT || 3000;

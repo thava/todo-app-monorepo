@@ -518,15 +518,26 @@ async function dbReinit(): Promise<void> {
   const client = postgres(databaseUrl);
   const db = drizzle(client, { schema });
 
+  async function safeDelete(table) {
+    return;
+    if (!table)
+      return;
+    try {
+      await db.delete(table);
+    } catch (err) {
+      console.warn(`Skipping delete for missing table ${table._.name}. Error:`, err.message);
+    }
+  }
+
   try {
     // Delete all data from tables (in reverse dependency order)
     printInfo('Deleting all data from tables...');
-    await db.delete(schema.todos);
-    await db.delete(schema.emailVerificationTokens);
-    await db.delete(schema.passwordResetTokens);
-    await db.delete(schema.refreshTokenSessions);
-    await db.delete(schema.auditLogs);
-    await db.delete(schema.users);
+    await safeDelete(schema.todos);
+    await safeDelete(schema.emailVerificationTokens);
+    await safeDelete(schema.passwordResetTokens);
+    await safeDelete(schema.refreshTokenSessions);
+    await safeDelete(schema.auditLogs);
+    await safeDelete(schema.users);
     printSuccess('All tables cleared');
 
     const domain = process.env.DEMO_DOMAIN || 'mydomain.com'
