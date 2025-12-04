@@ -1,0 +1,22 @@
+# Development Profile Configuration
+spring:
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: INFO
+    com.todoapp: DEBUG
+    org.springframework.security: DEBUG
+    org.jooq.tools.LoggerListener: DEBUG
+
+# Allow detailed error responses in development
+server:
+  error:
+    include-stacktrace: always
+    include-exception: true
+
+management:
+  endpoint:
+    health:
+      show-details: always

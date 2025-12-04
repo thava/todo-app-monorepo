@@ -1,0 +1,23 @@
+# Production Profile Configuration
+spring:
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: WARN
+    com.todoapp: INFO
+    org.springframework.security: WARN
+    org.jooq: WARN
+
+# Minimal error details in production
+server:
+  error:
+    include-stacktrace: never
+    include-exception: false
+    include-message: never
+
+management:
+  endpoint:
+    health:
+      show-details: never
