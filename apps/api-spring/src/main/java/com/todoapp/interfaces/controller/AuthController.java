@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,9 +37,9 @@ public class AuthController {
         String userAgent = request.getHeader("User-Agent");
         
         AuthService.AuthResponse response = authService.register(
-            dto.email(), dto.password(), dto.fullName(), ipAddress, userAgent);
-        
-        return ResponseEntity.ok(mapToAuthResponseDto(response));
+            dto.email(), dto.password(), dto.fullName(), dto.role(), dto.autoverify(), ipAddress, userAgent);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapToAuthResponseDto(response));
     }
 
     @PostMapping("/login")
@@ -70,17 +71,17 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(
+    public ResponseEntity<Void> logout(
             @Valid @RequestBody RefreshTokenDto dto,
-            @CurrentUser JwtAuthenticationFilter.UserPrincipal currentUser,
             HttpServletRequest request) {
-        
+
         String ipAddress = getClientIp(request);
         String userAgent = request.getHeader("User-Agent");
-        
-        authService.logout(dto.refreshToken(), currentUser.userId(), ipAddress, userAgent);
-        
-        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+
+        // Get userId from refresh token and logout
+        authService.logoutWithRefreshToken(dto.refreshToken(), ipAddress, userAgent);
+
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/logout-all")

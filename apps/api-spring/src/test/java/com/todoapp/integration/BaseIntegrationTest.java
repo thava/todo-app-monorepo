@@ -5,29 +5,27 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.jooq.DSLContext;
+
+import static com.todoapp.infrastructure.jooq.tables.AuditLogs.AUDIT_LOGS;
+import static com.todoapp.infrastructure.jooq.tables.EmailVerificationTokens.EMAIL_VERIFICATION_TOKENS;
+import static com.todoapp.infrastructure.jooq.tables.PasswordResetTokens.PASSWORD_RESET_TOKENS;
+import static com.todoapp.infrastructure.jooq.tables.RefreshTokenSessions.REFRESH_TOKEN_SESSIONS;
+import static com.todoapp.infrastructure.jooq.tables.Todos.TODOS;
+import static com.todoapp.infrastructure.jooq.tables.Users.USERS;
 
 /**
- * Base class for integration tests with Testcontainers
- * Provides PostgreSQL container and common test infrastructure
+ * Base class for integration tests
+ * Provides common test infrastructure and database cleanup
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
-@Testcontainers
+@ActiveProfiles("test")
+@TestPropertySource(locations = "classpath:application-test.properties")
 public abstract class BaseIntegrationTest {
-
-    @Container
-    protected static final PostgreSQLContainer<?> postgresContainer =
-        new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("test_db")
-            .withUsername("test_user")
-            .withPassword("test_password")
-            .withReuse(true);
 
     @Autowired
     protected MockMvc mockMvc;
@@ -35,29 +33,19 @@ public abstract class BaseIntegrationTest {
     @Autowired
     protected ObjectMapper objectMapper;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgresContainer::getJdbcUrl);
-        registry.add("spring.datasource.username", postgresContainer::getUsername);
-        registry.add("spring.datasource.password", postgresContainer::getPassword);
-        registry.add("spring.flyway.url", postgresContainer::getJdbcUrl);
-        registry.add("spring.flyway.user", postgresContainer::getUsername);
-        registry.add("spring.flyway.password", postgresContainer::getPassword);
-
-        // Test-specific settings
-        registry.add("jwt.access-expiry", () -> "15m");
-        registry.add("jwt.refresh-expiry", () -> "7d");
-        registry.add("jwt.access-secret", () -> "test-access-secret-key-for-testing-purposes-only-min-256-bits");
-        registry.add("jwt.refresh-secret", () -> "test-refresh-secret-key-for-testing-purposes-only-min-256-bits");
-
-        // Disable email sending in tests
-        registry.add("sendgrid.api-key", () -> "");
-        registry.add("email.from", () -> "test@example.com");
-    }
+    @Autowired
+    private DSLContext dsl;
 
     @BeforeEach
-    void setUp() {
-        // Additional setup can be added here
+    void cleanDatabase() {
+        // Clean all tables before each test to ensure isolation
+        // Order matters due to foreign key constraints
+        dsl.deleteFrom(AUDIT_LOGS).execute();
+        dsl.deleteFrom(TODOS).execute();
+        dsl.deleteFrom(EMAIL_VERIFICATION_TOKENS).execute();
+        dsl.deleteFrom(PASSWORD_RESET_TOKENS).execute();
+        dsl.deleteFrom(REFRESH_TOKEN_SESSIONS).execute();
+        dsl.deleteFrom(USERS).execute();
     }
 
     /**

@@ -22,7 +22,9 @@ public class RefreshTokenService {
 
     @Transactional
     public String createRefreshToken(UUID userId, String ipAddress, String userAgent) {
-        String token = jwtService.generateRefreshToken(userId);
+        // Each refresh token gets a unique session ID
+        UUID sessionId = UUID.randomUUID();
+        String token = jwtService.generateRefreshToken(userId, sessionId);
         Instant expiresAt = Instant.now().plus(jwtService.getRefreshTokenDuration());
 
         refreshTokenRepository.saveToken(userId, token, expiresAt, ipAddress, userAgent);

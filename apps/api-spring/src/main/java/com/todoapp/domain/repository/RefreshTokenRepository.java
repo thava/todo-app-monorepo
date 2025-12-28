@@ -1,6 +1,6 @@
 package com.todoapp.domain.repository;
 
-import com.todoapp.infrastructure.jooq.tables.RefreshTokens;
+import com.todoapp.infrastructure.jooq.tables.RefreshTokenSessions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -21,7 +21,7 @@ import java.util.UUID;
 public class RefreshTokenRepository {
 
     private final DSLContext dsl;
-    private static final RefreshTokens REFRESH_TOKENS = RefreshTokens.REFRESH_TOKENS;
+    private static final RefreshTokenSessions REFRESH_TOKENS = RefreshTokenSessions.REFRESH_TOKEN_SESSIONS;
 
     public void saveToken(UUID userId, String token, Instant expiresAt, String ipAddress, String userAgent) {
         String tokenHash = hashToken(token);
@@ -30,7 +30,7 @@ public class RefreshTokenRepository {
 
         dsl.insertInto(REFRESH_TOKENS)
             .set(REFRESH_TOKENS.USER_ID, userId)
-            .set(REFRESH_TOKENS.TOKEN_HASH, tokenHash)
+            .set(REFRESH_TOKENS.REFRESH_TOKEN_HASH, tokenHash)
             .set(REFRESH_TOKENS.EXPIRES_AT, expiresAtOdt)
             .set(REFRESH_TOKENS.IP_ADDRESS, ipAddress)
             .set(REFRESH_TOKENS.USER_AGENT, userAgent)
@@ -44,13 +44,13 @@ public class RefreshTokenRepository {
         String tokenHash = hashToken(token);
 
         return dsl.selectFrom(REFRESH_TOKENS)
-            .where(REFRESH_TOKENS.TOKEN_HASH.eq(tokenHash))
+            .where(REFRESH_TOKENS.REFRESH_TOKEN_HASH.eq(tokenHash))
             .and(REFRESH_TOKENS.REVOKED_AT.isNull())
             .and(REFRESH_TOKENS.EXPIRES_AT.greaterThan(OffsetDateTime.now(ZoneOffset.UTC)))
             .fetchOptional()
             .map(record -> new RefreshToken(
                 record.get(REFRESH_TOKENS.USER_ID),
-                record.get(REFRESH_TOKENS.TOKEN_HASH),
+                record.get(REFRESH_TOKENS.REFRESH_TOKEN_HASH),
                 record.get(REFRESH_TOKENS.EXPIRES_AT).toInstant()
             ));
     }
@@ -60,7 +60,7 @@ public class RefreshTokenRepository {
 
         dsl.update(REFRESH_TOKENS)
             .set(REFRESH_TOKENS.REVOKED_AT, OffsetDateTime.now(ZoneOffset.UTC))
-            .where(REFRESH_TOKENS.TOKEN_HASH.eq(tokenHash))
+            .where(REFRESH_TOKENS.REFRESH_TOKEN_HASH.eq(tokenHash))
             .execute();
 
         log.debug("Revoked refresh token");

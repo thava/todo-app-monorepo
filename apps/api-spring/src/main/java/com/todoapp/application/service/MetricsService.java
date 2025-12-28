@@ -61,13 +61,23 @@ public class MetricsService {
         return dsl.select(USERS.ROLE, org.jooq.impl.DSL.count())
             .from(USERS)
             .groupBy(USERS.ROLE)
-            .fetchMap(USERS.ROLE, org.jooq.impl.DSL.count());
+            .fetch()
+            .stream()
+            .collect(java.util.stream.Collectors.toMap(
+                record -> record.value1() != null ? record.value1().getLiteral() : "null",
+                record -> record.value2().longValue()
+            ));
     }
 
     private Map<String, Long> getTodosByPriority() {
         return dsl.select(TODOS.PRIORITY, org.jooq.impl.DSL.count())
             .from(TODOS)
             .groupBy(TODOS.PRIORITY)
-            .fetchMap(TODOS.PRIORITY, org.jooq.impl.DSL.count());
+            .fetch()
+            .stream()
+            .collect(java.util.stream.Collectors.toMap(
+                record -> record.value1() != null ? record.value1().getLiteral() : "null",
+                record -> record.value2().longValue()
+            ));
     }
 }

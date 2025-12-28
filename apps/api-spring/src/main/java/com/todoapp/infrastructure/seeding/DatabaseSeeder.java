@@ -1,7 +1,7 @@
 package com.todoapp.infrastructure.seeding;
 
-import com.todoapp.domain.model.Priority;
-import com.todoapp.domain.model.Role;
+import com.todoapp.infrastructure.jooq.enums.Priority;
+import com.todoapp.infrastructure.jooq.enums.Role;
 import com.todoapp.domain.repository.TodoRepository;
 import com.todoapp.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -59,7 +59,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             "admin@example.com",
             sysadminPassword,
             "System Administrator",
-            Role.SYSADMIN
+            Role.sysadmin
         );
         userRepository.markEmailVerified(sysadminId);
         log.info("Created sysadmin: admin@example.com");
@@ -70,7 +70,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             "moderator@example.com",
             adminPassword,
             "Moderator Admin",
-            Role.ADMIN
+            Role.admin
         );
         userRepository.markEmailVerified(adminId);
         log.info("Created admin: moderator@example.com");
@@ -82,7 +82,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             "alice@example.com",
             userPassword,
             "Alice Johnson",
-            Role.USER
+            Role.guest
         );
         userRepository.markEmailVerified(user1Id);
         log.info("Created user: alice@example.com");
@@ -91,7 +91,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             "bob@example.com",
             userPassword,
             "Bob Smith",
-            Role.USER
+            Role.guest
         );
         userRepository.markEmailVerified(user2Id);
         log.info("Created user: bob@example.com");
@@ -100,7 +100,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             "charlie@example.com",
             userPassword,
             "Charlie Brown",
-            Role.USER
+            Role.guest
         );
         // Don't verify charlie's email
         log.info("Created user: charlie@example.com (unverified)");
@@ -124,29 +124,28 @@ public class DatabaseSeeder implements CommandLineRunner {
         // Alice's todos
         todoRepository.createTodo(
             aliceId,
-            "Complete project documentation",
             "Write comprehensive documentation for the Spring Boot project",
-            Priority.HIGH,
+            false,
+            Priority.high,
             Instant.now().plus(7, ChronoUnit.DAYS)
         );
 
         UUID aliceTodo2 = todoRepository.createTodo(
             aliceId,
-            "Review pull requests",
             "Review and merge pending pull requests",
-            Priority.MEDIUM,
+            false,
+            Priority.medium,
             Instant.now().plus(2, ChronoUnit.DAYS)
         );
-        
+
         // Mark one as completed
         var completedTodo = todoRepository.findById(aliceTodo2).orElseThrow();
         todoRepository.update(new TodoRepository.Todo(
             completedTodo.id(),
             completedTodo.ownerId(),
-            completedTodo.title(),
             completedTodo.description(),
-            completedTodo.priority(),
             true, // completed
+            completedTodo.priority(),
             completedTodo.dueDate(),
             completedTodo.createdAt(),
             completedTodo.updatedAt()
@@ -154,42 +153,42 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         todoRepository.createTodo(
             aliceId,
-            "Update dependencies",
             "Update all project dependencies to latest versions",
-            Priority.LOW,
+            false,
+            Priority.low,
             Instant.now().plus(14, ChronoUnit.DAYS)
         );
 
         // Bob's todos
         todoRepository.createTodo(
             bobId,
-            "Fix authentication bug",
             "Investigate and fix the JWT token refresh issue",
-            Priority.HIGH,
+            false,
+            Priority.high,
             Instant.now().plus(1, ChronoUnit.DAYS)
         );
 
         todoRepository.createTodo(
             bobId,
-            "Write unit tests",
             "Add unit tests for the todo service layer",
-            Priority.MEDIUM,
+            false,
+            Priority.medium,
             Instant.now().plus(5, ChronoUnit.DAYS)
         );
 
         todoRepository.createTodo(
             bobId,
-            "Database optimization",
             "Optimize database queries and add indexes",
-            Priority.MEDIUM,
+            false,
+            Priority.medium,
             null // No due date
         );
 
         todoRepository.createTodo(
             bobId,
-            "Setup CI/CD pipeline",
             "Configure GitHub Actions for automated testing and deployment",
-            Priority.LOW,
+            false,
+            Priority.low,
             Instant.now().plus(30, ChronoUnit.DAYS)
         );
 

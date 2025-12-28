@@ -32,7 +32,7 @@ class AdminOperationsIntegrationTest extends BaseIntegrationTest {
         String responseBody = result.getResponse().getContentAsString();
         JsonNode jsonNode = objectMapper.readTree(responseBody);
 
-        assertThat(jsonNode).isArray();
+        assertThat(jsonNode.isArray()).isTrue();
         assertThat(jsonNode.size()).isGreaterThanOrEqualTo(3); // At least 3 users created
     }
 
@@ -52,7 +52,7 @@ class AdminOperationsIntegrationTest extends BaseIntegrationTest {
         String responseBody = result.getResponse().getContentAsString();
         JsonNode jsonNode = objectMapper.readTree(responseBody);
 
-        assertThat(jsonNode).isArray();
+        assertThat(jsonNode.isArray()).isTrue();
         assertThat(jsonNode.size()).isGreaterThanOrEqualTo(2);
     }
 

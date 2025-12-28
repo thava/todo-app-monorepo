@@ -1,6 +1,6 @@
 package com.todoapp.domain.repository;
 
-import com.todoapp.domain.model.Role;
+import com.todoapp.infrastructure.jooq.enums.Role;
 import com.todoapp.infrastructure.jooq.tables.Users;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +31,7 @@ public class UserRepository {
             .set(USERS.EMAIL, email)
             .set(USERS.PASSWORD_HASH_PRIMARY, passwordHash)
             .set(USERS.FULL_NAME, fullName)
-            .set(USERS.ROLE, role.getValue())
+            .set(USERS.ROLE, role)
             .set(USERS.CREATED_AT, now)
             .set(USERS.UPDATED_AT, now)
             .execute();
@@ -66,7 +66,7 @@ public class UserRepository {
             .set(USERS.EMAIL, user.email())
             .set(USERS.PASSWORD_HASH_PRIMARY, user.passwordHash())
             .set(USERS.FULL_NAME, user.fullName())
-            .set(USERS.ROLE, user.role().getValue())
+            .set(USERS.ROLE, user.role())
             .set(USERS.EMAIL_VERIFIED_AT, user.emailVerifiedAt() != null ?
                 OffsetDateTime.ofInstant(user.emailVerifiedAt(), ZoneOffset.UTC) : null)
             .set(USERS.UPDATED_AT, OffsetDateTime.now(ZoneOffset.UTC))
@@ -106,7 +106,7 @@ public class UserRepository {
             record.get(USERS.EMAIL),
             record.get(USERS.PASSWORD_HASH_PRIMARY),
             record.get(USERS.FULL_NAME),
-            Role.fromValue(record.get(USERS.ROLE)),
+            record.get(USERS.ROLE),
             record.get(USERS.EMAIL_VERIFIED_AT) != null ?
                 record.get(USERS.EMAIL_VERIFIED_AT).toInstant() : null,
             record.get(USERS.CREATED_AT).toInstant(),

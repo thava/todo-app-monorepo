@@ -4,6 +4,7 @@ buildscript {
     }
     dependencies {
         classpath("org.postgresql:postgresql:42.7.3")
+        classpath("org.flywaydb:flyway-database-postgresql:10.20.1")
     }
 }
 
@@ -48,6 +49,10 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("com.zaxxer:HikariCP")
 
+    // Flyway runtime
+    // Driver for Flyway Gradle plugin
+    // add("flywayCli", "org.postgresql:postgresql:42.7.3")
+
     // jOOQ
     jooqGenerator("org.postgresql:postgresql")
 
@@ -55,6 +60,9 @@ dependencies {
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+
+    // Argon2 Password Encoding (requires Bouncy Castle)
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
 
     // MapStruct
     implementation("org.mapstruct:mapstruct:1.6.2")
@@ -100,6 +108,12 @@ flyway {
     locations = arrayOf("filesystem:src/main/resources/db/migration")
 }
 
+sourceSets {
+    main {
+        java.srcDir(layout.buildDirectory.dir("generated/jooq"))
+    }
+}
+
 // jOOQ configuration
 jooq {
     version.set("3.19.15")
@@ -129,7 +143,7 @@ jooq {
                     }
                     target.apply {
                         packageName = "com.todoapp.infrastructure.jooq"
-                        directory = "src/main/java"
+                        directory = layout.buildDirectory.dir("generated/jooq").get().asFile.path
                     }
                 }
             }
@@ -147,7 +161,7 @@ tasks.register("cleanJooq") {
     group = "jooq"
     description = "Clean generated jOOQ sources"
     doLast {
-        delete("src/main/java/com/todoapp/infrastructure/jooq")
+        delete(layout.buildDirectory.dir("generated/jooq"))
     }
 }
 

@@ -1,7 +1,7 @@
 package com.todoapp.application.service;
 
 import com.todoapp.domain.exception.ForbiddenException;
-import com.todoapp.domain.model.Role;
+import com.todoapp.infrastructure.jooq.enums.Role;
 import com.todoapp.domain.repository.TodoRepository;
 import com.todoapp.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,14 +19,14 @@ public class AuthorizationService {
 
     public void ensureIsAdmin(UUID userId) {
         UserRepository.User user = userService.getUserById(userId);
-        if (user.role() != Role.ADMIN && user.role() != Role.SYSADMIN) {
+        if (user.role() != Role.admin && user.role() != Role.sysadmin) {
             throw new ForbiddenException("Admin access required");
         }
     }
 
     public void ensureIsSysAdmin(UUID userId) {
         UserRepository.User user = userService.getUserById(userId);
-        if (user.role() != Role.SYSADMIN) {
+        if (user.role() != Role.sysadmin) {
             throw new ForbiddenException("System admin access required");
         }
     }
@@ -40,22 +40,15 @@ public class AuthorizationService {
 
     public void ensureCanModifyUser(UUID currentUserId, UUID targetUserId) {
         UserRepository.User currentUser = userService.getUserById(currentUserId);
-        
+
         if (currentUserId.equals(targetUserId)) {
             return; // Users can modify themselves
         }
-        
-        if (currentUser.role() == Role.SYSADMIN) {
-            return; // Sysadmins can modify anyone
+
+        if (currentUser.role() == Role.sysadmin) {
+            return; // Only sysadmins can modify other users
         }
-        
-        if (currentUser.role() == Role.ADMIN) {
-            UserRepository.User targetUser = userService.getUserById(targetUserId);
-            if (targetUser.role() != Role.SYSADMIN) {
-                return; // Admins can modify non-sysadmins
-            }
-        }
-        
+
         throw new ForbiddenException("Insufficient permissions to modify this user");
     }
 
@@ -70,6 +63,8 @@ public class AuthorizationService {
         if (todo.isOwnedBy(currentUserId)) {
             return; // Owner can modify
         }
-        ensureIsAdmin(currentUserId); // Admins can modify any todo
+
+        // Only sysadmins can modify other users' todos
+        ensureIsSysAdmin(currentUserId);
     }
 }

@@ -1,7 +1,7 @@
 package com.todoapp.application.service;
 
 import com.todoapp.domain.exception.UnauthorizedException;
-import com.todoapp.domain.model.Role;
+import com.todoapp.infrastructure.jooq.enums.Role;
 import com.todoapp.domain.repository.UserRepository;
 import com.todoapp.infrastructure.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -23,18 +23,35 @@ public class AuthService {
     private final EmailVerificationService emailVerificationService;
 
     @Transactional
-    public AuthResponse register(String email, String password, String fullName, 
-                                 String ipAddress, String userAgent) {
-        UserRepository.User user = userService.registerUser(email, password, fullName, Role.USER);
-        
+    public AuthResponse register(String email, String password, String fullName, String roleStr,
+                                 Boolean autoverify, String ipAddress, String userAgent) {
+        // Parse role, default to guest if not provided or invalid
+        Role role = Role.guest;
+        if (roleStr != null) {
+            try {
+                role = Role.valueOf(roleStr.toLowerCase());
+            } catch (IllegalArgumentException e) {
+                // Log and use default
+                log.warn("Invalid role provided: {}, defaulting to guest", roleStr);
+            }
+        }
+
+        UserRepository.User user = userService.registerUser(email, password, fullName, role);
+
+        // Auto-verify email if requested (for testing purposes)
+        if (Boolean.TRUE.equals(autoverify)) {
+            userService.verifyEmail(user.id());
+            user = userService.getUserById(user.id()); // Reload to get updated emailVerifiedAt
+        } else {
+            // Send verification email asynchronously
+            emailVerificationService.sendVerificationEmail(user.id(), user.email());
+        }
+
         String accessToken = jwtService.generateAccessToken(user.id(), user.email(), user.role());
         String refreshToken = refreshTokenService.createRefreshToken(user.id(), ipAddress, userAgent);
-        
+
         auditService.logAction(user.id(), "USER_REGISTERED", null, ipAddress, userAgent);
-        
-        // Send verification email asynchronously
-        emailVerificationService.sendVerificationEmail(user.id(), user.email());
-        
+
         return new AuthResponse(accessToken, refreshToken, user);
     }
 
@@ -68,6 +85,13 @@ public class AuthService {
 
     @Transactional
     public void logout(String refreshToken, UUID userId, String ipAddress, String userAgent) {
+        refreshTokenService.revokeToken(refreshToken);
+        auditService.logAction(userId, "USER_LOGOUT", null, ipAddress, userAgent);
+    }
+
+    @Transactional
+    public void logoutWithRefreshToken(String refreshToken, String ipAddress, String userAgent) {
+        UUID userId = refreshTokenService.validateAndGetUserId(refreshToken);
         refreshTokenService.revokeToken(refreshToken);
         auditService.logAction(userId, "USER_LOGOUT", null, ipAddress, userAgent);
     }

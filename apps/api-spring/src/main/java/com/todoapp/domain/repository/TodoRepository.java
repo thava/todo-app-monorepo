@@ -1,6 +1,6 @@
 package com.todoapp.domain.repository;
 
-import com.todoapp.domain.model.Priority;
+import com.todoapp.infrastructure.jooq.enums.Priority;
 import com.todoapp.infrastructure.jooq.tables.Todos;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,23 +22,21 @@ public class TodoRepository {
     private final DSLContext dsl;
     private static final Todos TODOS = Todos.TODOS;
 
-    public UUID createTodo(UUID ownerId, String description, Instant dueDate, Priority priority) {
-        UUID id = UUID.randomUUID();
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    public UUID createTodo(UUID ownerId, String description, Boolean completed, Priority priority, Instant dueDate) {
         OffsetDateTime dueDateOdt = dueDate != null ? OffsetDateTime.ofInstant(dueDate, ZoneOffset.UTC) : null;
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
-        dsl.insertInto(TODOS)
-            .set(TODOS.ID, id)
+        return dsl.insertInto(TODOS)
             .set(TODOS.OWNER_ID, ownerId)
             .set(TODOS.DESCRIPTION, description)
+            .set(TODOS.COMPLETED, completed != null ? completed : false)
+            .set(TODOS.PRIORITY, priority != null ? priority : Priority.medium)
             .set(TODOS.DUE_DATE, dueDateOdt)
-            .set(TODOS.PRIORITY, priority.getValue())
             .set(TODOS.CREATED_AT, now)
             .set(TODOS.UPDATED_AT, now)
-            .execute();
-
-        log.debug("Created todo: {}", id);
-        return id;
+            .returning(TODOS.ID)
+            .fetchOne()
+            .getId();
     }
 
     public Optional<Todo> findById(UUID id) {
@@ -69,25 +67,24 @@ public class TodoRepository {
 
         dsl.update(TODOS)
             .set(TODOS.DESCRIPTION, todo.description())
+            .set(TODOS.COMPLETED, todo.completed())
+            .set(TODOS.PRIORITY, todo.priority())
             .set(TODOS.DUE_DATE, dueDateOdt)
-            .set(TODOS.PRIORITY, todo.priority().getValue())
             .set(TODOS.UPDATED_AT, OffsetDateTime.now(ZoneOffset.UTC))
             .where(TODOS.ID.eq(todo.id()))
             .execute();
-
-        log.debug("Updated todo: {}", todo.id());
     }
 
     public void deleteById(UUID id) {
         dsl.deleteFrom(TODOS)
             .where(TODOS.ID.eq(id))
             .execute();
-        log.debug("Deleted todo: {}", id);
     }
 
     public boolean existsById(UUID id) {
         return dsl.fetchExists(
-            dsl.selectOne().from(TODOS).where(TODOS.ID.eq(id))
+            dsl.selectFrom(TODOS)
+                .where(TODOS.ID.eq(id))
         );
     }
 
@@ -96,8 +93,9 @@ public class TodoRepository {
             record.get(TODOS.ID),
             record.get(TODOS.OWNER_ID),
             record.get(TODOS.DESCRIPTION),
+            record.get(TODOS.COMPLETED),
+            record.get(TODOS.PRIORITY),
             record.get(TODOS.DUE_DATE) != null ? record.get(TODOS.DUE_DATE).toInstant() : null,
-            Priority.fromValue(record.get(TODOS.PRIORITY)),
             record.get(TODOS.CREATED_AT).toInstant(),
             record.get(TODOS.UPDATED_AT).toInstant()
         );
@@ -107,8 +105,9 @@ public class TodoRepository {
         UUID id,
         UUID ownerId,
         String description,
-        Instant dueDate,
+        Boolean completed,
         Priority priority,
+        Instant dueDate,
         Instant createdAt,
         Instant updatedAt
     ) {

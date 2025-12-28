@@ -42,7 +42,7 @@ public class EmailVerificationTokenRepository {
 
         return dsl.selectFrom(TOKENS)
             .where(TOKENS.TOKEN_HASH.eq(tokenHash))
-            .and(TOKENS.USED_AT.isNull())
+            .and(TOKENS.VERIFIED_AT.isNull())
             .and(TOKENS.EXPIRES_AT.greaterThan(OffsetDateTime.now(ZoneOffset.UTC)))
             .fetchOptional()
             .map(record -> new EmailVerificationToken(
@@ -55,7 +55,7 @@ public class EmailVerificationTokenRepository {
         String tokenHash = hashToken(token);
 
         dsl.update(TOKENS)
-            .set(TOKENS.USED_AT, OffsetDateTime.now(ZoneOffset.UTC))
+            .set(TOKENS.VERIFIED_AT, OffsetDateTime.now(ZoneOffset.UTC))
             .where(TOKENS.TOKEN_HASH.eq(tokenHash))
             .execute();
 

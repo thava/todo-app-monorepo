@@ -144,8 +144,8 @@ export class TodosService {
       where: eq(todos.id, id),
     });
 
-    console.log('Todo Update: Lookup: id: ', id)
-    console.log('Found todo: ', todo)
+    // console.log('Todo Update: Lookup: id: ', id)
+    // console.log('Found todo: ', todo)
 
     if (!todo) {
       throw new NotFoundException('Todo not found');

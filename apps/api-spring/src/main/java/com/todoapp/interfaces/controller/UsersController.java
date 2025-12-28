@@ -17,22 +17,44 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/users")
 @RequiredArgsConstructor
 public class UsersController {
 
     private final UserService userService;
     private final AuthorizationService authorizationService;
 
+    // Endpoint at /me (for test compatibility)
     @GetMapping("/me")
+    public ResponseEntity<UserResponseDto> getCurrentUserAtRoot(
+            @CurrentUser JwtAuthenticationFilter.UserPrincipal currentUser) {
+        UserRepository.User user = userService.getUserById(currentUser.userId());
+        return ResponseEntity.ok(mapToUserResponseDto(user));
+    }
+
+    // Endpoint at /users/me
+    @GetMapping("/users/me")
     public ResponseEntity<UserResponseDto> getCurrentUser(
             @CurrentUser JwtAuthenticationFilter.UserPrincipal currentUser) {
-        
         UserRepository.User user = userService.getUserById(currentUser.userId());
         return ResponseEntity.ok(mapToUserResponseDto(user));
     }
 
     @PatchMapping("/me")
+    public ResponseEntity<UserResponseDto> updateProfileAtRoot(
+            @Valid @RequestBody UpdateProfileDto dto,
+            @CurrentUser JwtAuthenticationFilter.UserPrincipal currentUser) {
+        UserRepository.User user = userService.updateUser(
+            currentUser.userId(),
+            dto.email(),
+            dto.password(),
+            dto.fullName(),
+            null,  // Don't allow changing role through profile update
+            false
+        );
+        return ResponseEntity.ok(mapToUserResponseDto(user));
+    }
+
+    @PatchMapping("/users/me")
     public ResponseEntity<UserResponseDto> updateProfile(
             @Valid @RequestBody UpdateProfileDto dto,
             @CurrentUser JwtAuthenticationFilter.UserPrincipal currentUser) {
@@ -49,7 +71,7 @@ public class UsersController {
         return ResponseEntity.ok(mapToUserResponseDto(user));
     }
 
-    @GetMapping("/{userId}")
+    @GetMapping("/users/{userId}")
     public ResponseEntity<UserResponseDto> getUserById(
             @PathVariable UUID userId,
             @CurrentUser JwtAuthenticationFilter.UserPrincipal currentUser) {

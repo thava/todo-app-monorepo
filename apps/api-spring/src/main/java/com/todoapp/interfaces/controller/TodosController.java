@@ -37,7 +37,6 @@ public class TodosController {
         
         TodoRepository.Todo todo = todoService.createTodo(
             currentUser.userId(),
-            dto.title(),
             dto.description(),
             dto.priority(),
             dto.dueDate(),
@@ -87,7 +86,6 @@ public class TodosController {
         TodoRepository.Todo todo = todoService.updateTodo(
             id,
             currentUser.userId(),
-            dto.title(),
             dto.description(),
             dto.priority(),
             dto.completed(),
@@ -124,10 +122,9 @@ public class TodosController {
         return new TodoResponseDto(
             todo.id(),
             todo.ownerId(),
-            todo.title(),
             todo.description(),
-            todo.priority(),
             todo.completed(),
+            todo.priority(),
             todo.dueDate(),
             todo.createdAt(),
             todo.updatedAt()

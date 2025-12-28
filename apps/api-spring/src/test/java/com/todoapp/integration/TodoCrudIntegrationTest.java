@@ -65,7 +65,7 @@ class TodoCrudIntegrationTest extends BaseIntegrationTest {
         String responseBody = result.getResponse().getContentAsString();
         JsonNode jsonNode = objectMapper.readTree(responseBody);
 
-        assertThat(jsonNode).isArray();
+        assertThat(jsonNode.isArray()).isTrue();
         assertThat(jsonNode).hasSize(2);
         assertThat(jsonNode.get(0).get("description").asText()).contains("User1");
         assertThat(jsonNode.get(1).get("description").asText()).contains("User1");
@@ -91,7 +91,7 @@ class TodoCrudIntegrationTest extends BaseIntegrationTest {
         String responseBody = result.getResponse().getContentAsString();
         JsonNode jsonNode = objectMapper.readTree(responseBody);
 
-        assertThat(jsonNode).isArray();
+        assertThat(jsonNode.isArray()).isTrue();
         assertThat(jsonNode.size()).isGreaterThanOrEqualTo(2);
     }
 

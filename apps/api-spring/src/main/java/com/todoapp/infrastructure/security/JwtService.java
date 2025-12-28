@@ -1,5 +1,6 @@
 package com.todoapp.infrastructure.security;
 
+import com.todoapp.infrastructure.jooq.enums.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -41,14 +42,14 @@ public class JwtService {
         log.info("JWT Service initialized with access expiry: {} and refresh expiry: {}", accessTokenExpiry, refreshTokenExpiry);
     }
 
-    public String generateAccessToken(UUID userId, String email, String role) {
+    public String generateAccessToken(UUID userId, String email, Role role) {
         Instant now = Instant.now();
         Instant expiry = now.plus(parseDuration(accessTokenExpiry));
 
         return Jwts.builder()
             .subject(userId.toString())
             .claim("email", email)
-            .claim("role", role)
+            .claim("role", role.getLiteral())
             .claim("type", "access")
             .issuedAt(Date.from(now))
             .expiration(Date.from(expiry))
@@ -56,13 +57,14 @@ public class JwtService {
             .compact();
     }
 
-    public String generateRefreshToken(UUID userId) {
+    public String generateRefreshToken(UUID userId, UUID sessionId) {
         Instant now = Instant.now();
         Instant expiry = now.plus(parseDuration(refreshTokenExpiry));
 
         return Jwts.builder()
             .subject(userId.toString())
             .claim("type", "refresh")
+            .claim("sessionId", sessionId.toString())
             .issuedAt(Date.from(now))
             .expiration(Date.from(expiry))
             .signWith(refreshTokenKey)

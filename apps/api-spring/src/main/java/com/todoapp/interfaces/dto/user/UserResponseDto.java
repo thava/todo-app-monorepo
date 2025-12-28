@@ -1,6 +1,6 @@
 package com.todoapp.interfaces.dto.user;
 
-import com.todoapp.domain.model.Role;
+import com.todoapp.infrastructure.jooq.enums.Role;
 
 import java.time.Instant;
 import java.util.UUID;

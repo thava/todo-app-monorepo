@@ -18,6 +18,25 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-spring:
+    image: postgres:16-alpine
+    container_name: todo-spring-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: todo_spring_dev
+      POSTGRES_USER: todo_user
+      POSTGRES_PASSWORD: todo_password_dev
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - '5434:5432'
+    volumes:
+      - postgres_spring_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U todo_user -d todo_spring_dev']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Optional: Adminer for database management UI
   adminer:
     image: adminer:latest
@@ -27,7 +46,10 @@ services:
       - '8080:8080'
     depends_on:
       - postgres
+      - postgres-spring
 
 volumes:
   postgres_data:
+    driver: local
+  postgres_spring_data:
     driver: local

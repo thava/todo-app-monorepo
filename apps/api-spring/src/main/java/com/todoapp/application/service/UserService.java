@@ -3,7 +3,7 @@ package com.todoapp.application.service;
 import com.todoapp.domain.exception.BadRequestException;
 import com.todoapp.domain.exception.NotFoundException;
 import com.todoapp.domain.exception.UnauthorizedException;
-import com.todoapp.domain.model.Role;
+import com.todoapp.infrastructure.jooq.enums.Role;
 import com.todoapp.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -96,5 +96,14 @@ public class UserService {
             throw new NotFoundException("User not found");
         }
         userRepository.deleteById(userId);
+    }
+
+    @Transactional
+    public void verifyEmail(UUID userId) {
+        if (!userRepository.findById(userId).isPresent()) {
+            throw new NotFoundException("User not found");
+        }
+        userRepository.markEmailVerified(userId);
+        log.info("Email verified for user {}", userId);
     }
 }
