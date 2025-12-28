@@ -6,6 +6,15 @@ export interface ApiError {
   details?: unknown;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  role: 'guest' | 'admin' | 'sysadmin';
+  emailVerified: boolean;
+  emailVerifiedAt?: string | null;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -47,14 +56,14 @@ class ApiClient {
 
   // Auth endpoints
   async login(email: string, password: string) {
-    return this.request<{ accessToken: string; refreshToken: string; user: any }>('/auth/login', {
+    return this.request<{ accessToken: string; refreshToken: string; user: User }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
   }
 
   async register(email: string, password: string, fullName: string) {
-    return this.request<{ accessToken: string; refreshToken: string; user: any }>('/auth/register', {
+    return this.request<{ accessToken: string; refreshToken: string; user: User }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, fullName }),
     });

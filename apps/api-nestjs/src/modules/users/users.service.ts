@@ -25,7 +25,7 @@ export class UsersService {
     }
 
     // Remove sensitive fields
-    const { passwordHashPrimary, ...safeUser } = user;
+    const { localPasswordHash, ...safeUser } = user;
     return safeUser;
   }
 
@@ -34,7 +34,7 @@ export class UsersService {
    */
   async findByEmail(email: string) {
     const user = await this.db.query.users.findFirst({
-      where: eq(users.email, email.toLowerCase().trim()),
+      where: eq(users.localUsername, email.toLowerCase().trim()),
     });
 
     if (!user) {
@@ -42,7 +42,7 @@ export class UsersService {
     }
 
     // Remove sensitive fields
-    const { passwordHashPrimary, ...safeUser } = user;
+    const { localPasswordHash, ...safeUser } = user;
     return safeUser;
   }
 
@@ -51,9 +51,10 @@ export class UsersService {
    */
   async getProfile(userId: string) {
     const user = await this.findById(userId);
+    const userEmail = user.localUsername || user.googleEmail || user.msEmail || '';
     return {
       id: user.id,
-      email: user.email,
+      email: userEmail,
       fullName: user.fullName,
       role: user.role,
       emailVerified: !!user.emailVerifiedAt,
@@ -78,7 +79,7 @@ export class UsersService {
     }
 
     // Remove sensitive fields
-    const { passwordHashPrimary, ...safeUser } = updatedUser;
+    const { localPasswordHash, ...safeUser } = updatedUser;
     return safeUser;
   }
 }

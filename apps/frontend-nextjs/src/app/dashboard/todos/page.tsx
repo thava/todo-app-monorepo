@@ -38,6 +38,7 @@ export default function TodosPage() {
 
   useEffect(() => {
     loadTodos();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTodos = async () => {
@@ -48,8 +49,8 @@ export default function TodosPage() {
     try {
       const data = await api.getTodos(accessToken) as Todo[];
       setTodos(data);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load todos');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load todos');
     } finally {
       setIsLoading(false);
     }
@@ -68,8 +69,8 @@ export default function TodosPage() {
       }) as Todo;
       setTodos([newTodo, ...todos]);
       resetForm();
-    } catch (err: any) {
-      setError(err?.message || 'Failed to create todo');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create todo');
     }
   };
 
@@ -103,8 +104,8 @@ export default function TodosPage() {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }, 100);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to update todo');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update todo');
       // Scroll to top to show error message (accounts for fixed navbar)
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -124,8 +125,8 @@ export default function TodosPage() {
       await api.deleteTodo(accessToken, deleteConfirm.todoId);
       setTodos(todos.filter((t) => t.id !== deleteConfirm.todoId));
       setDeleteConfirm({ isOpen: false, todoId: null });
-    } catch (err: any) {
-      setError(err?.message || 'Failed to delete todo');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete todo');
       setDeleteConfirm({ isOpen: false, todoId: null });
       // Scroll to top to show error message (accounts for fixed navbar)
       setTimeout(() => {
@@ -254,7 +255,7 @@ export default function TodosPage() {
                 <select
                   id="priority"
                   value={priority}
-                  onChange={(e) => setPriority(e.target.value as any)}
+                  onChange={(e) => setPriority(e.target.value as 'low' | 'medium' | 'high')}
                   className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="low">Low</option>
@@ -346,7 +347,7 @@ export default function TodosPage() {
                         <select
                           id={`priority-${todo.id}`}
                           value={priority}
-                          onChange={(e) => setPriority(e.target.value as any)}
+                          onChange={(e) => setPriority(e.target.value as 'low' | 'medium' | 'high')}
                           className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         >
                           <option value="low">Low</option>

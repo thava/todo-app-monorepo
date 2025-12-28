@@ -10,17 +10,6 @@ export default function ProfilePage() {
     return null;
   }
 
-  const formatDate = (date: string | boolean) => {
-    if (typeof date === 'boolean' || !date) {
-      return 'Not verified';
-    }
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
   return (
     <div>
       <h1 className="text-3xl font-bold text-foreground mb-8">Profile</h1>

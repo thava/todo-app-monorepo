@@ -2,16 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { api } from './api';
-
-interface User {
-  id: string;
-  email: string;
-  fullName: string;
-  role: 'guest' | 'admin' | 'sysadmin';
-  emailVerified: boolean;
-  emailVerifiedAt?: string | null;
-}
+import { api, type User } from './api';
 
 interface AuthState {
   user: User | null;
@@ -61,7 +52,7 @@ const dynamicStorage = {
         localStorage.removeItem(name);
         sessionStorage.setItem(name, value);
       }
-    } catch (error) {
+    } catch {
       // Fallback to localStorage if parsing fails
       localStorage.setItem(name, value);
     }

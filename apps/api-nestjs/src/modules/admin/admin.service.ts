@@ -64,27 +64,28 @@ export class AdminService {
     // Prepare update data
     const updateData: any = {};
 
-    // Handle email update
+    // Handle email update (now updates localUsername)
     if (updateUserDto.email) {
-      const normalizedEmail = updateUserDto.email.toLowerCase().trim();
+      const normalizedUsername = updateUserDto.email.toLowerCase().trim();
 
-      // Check if email is already taken by another user
-      const emailExists = await this.db.query.users.findFirst({
-        where: eq(users.email, normalizedEmail),
+      // Check if username is already taken by another user
+      const usernameExists = await this.db.query.users.findFirst({
+        where: eq(users.localUsername, normalizedUsername),
       });
 
-      if (emailExists && emailExists.id !== id) {
-        throw new ConflictException('Email already in use by another user');
+      if (usernameExists && usernameExists.id !== id) {
+        throw new ConflictException('Username already in use by another user');
       }
 
-      updateData.email = normalizedEmail;
+      updateData.localUsername = normalizedUsername;
     }
 
     // Handle password update
     if (updateUserDto.password) {
+      const userEmail = updateUserDto.email || existingUser.localUsername || '';
       const passwordValidation = this.passwordService.validatePasswordStrength(
         updateUserDto.password,
-        updateUserDto.email || existingUser.email,
+        userEmail,
       );
 
       if (!passwordValidation.isValid) {
@@ -95,7 +96,7 @@ export class AdminService {
       }
 
       const passwordHash = await this.passwordService.hashPassword(updateUserDto.password);
-      updateData.passwordHashPrimary = passwordHash;
+      updateData.localPasswordHash = passwordHash;
     }
 
     // Handle fullName update
@@ -158,9 +159,10 @@ export class AdminService {
    * Remove sensitive fields from user object
    */
   private sanitizeUser(user: typeof users.$inferSelect): UserResponseDto {
+    const userEmail = user.localUsername || user.googleEmail || user.msEmail || '';
     return {
       id: user.id,
-      email: user.email,
+      email: userEmail,
       fullName: user.fullName,
       role: user.role,
       emailVerifiedAt: user.emailVerifiedAt,

@@ -36,12 +36,14 @@ export class TodosService {
     // Get owner information
     const owner = await this.db.query.users.findFirst({
       where: eq(users.id, userId),
-      columns: { email: true, fullName: true, role: true },
+      columns: { localUsername: true, googleEmail: true, msEmail: true, fullName: true, role: true },
     });
+
+    const ownerEmail = owner ? (owner.localUsername || owner.googleEmail || owner.msEmail || '') : undefined;
 
     return {
       ...todo,
-      ownerEmail: owner?.email,
+      ownerEmail,
       ownerName: owner?.fullName,
       ownerRole: owner?.role,
     };
@@ -58,12 +60,14 @@ export class TodosService {
 
     const owner = await this.db.query.users.findFirst({
       where: eq(users.id, userId),
-      columns: { email: true, fullName: true, role: true },
+      columns: { localUsername: true, googleEmail: true, msEmail: true, fullName: true, role: true },
     });
+
+    const ownerEmail = owner ? (owner.localUsername || owner.googleEmail || owner.msEmail || '') : undefined;
 
     return userTodos.map((todo) => ({
       ...todo,
-      ownerEmail: owner?.email,
+      ownerEmail,
       ownerName: owner?.fullName,
       ownerRole: owner?.role,
     }));
@@ -84,10 +88,19 @@ export class TodosService {
     const ownerIds = [...new Set(allTodos.map((t) => t.ownerId))];
     const owners = await this.db.query.users.findMany({
       where: (users, { inArray }) => inArray(users.id, ownerIds),
-      columns: { id: true, email: true, fullName: true, role: true },
+      columns: { id: true, localUsername: true, googleEmail: true, msEmail: true, fullName: true, role: true },
     });
 
-    const ownerMap = new Map(owners.map((o) => [o.id, { email: o.email, fullName: o.fullName, role: o.role }]));
+    const ownerMap = new Map(
+      owners.map((o) => [
+        o.id,
+        {
+          email: o.localUsername || o.googleEmail || o.msEmail || '',
+          fullName: o.fullName,
+          role: o.role,
+        },
+      ])
+    );
 
     return allTodos.map((todo) => {
       const ownerInfo = ownerMap.get(todo.ownerId);
@@ -120,12 +133,14 @@ export class TodosService {
     // Get owner information
     const owner = await this.db.query.users.findFirst({
       where: eq(users.id, todo.ownerId),
-      columns: { email: true, fullName: true, role: true },
+      columns: { localUsername: true, googleEmail: true, msEmail: true, fullName: true, role: true },
     });
+
+    const ownerEmail = owner ? (owner.localUsername || owner.googleEmail || owner.msEmail || '') : undefined;
 
     return {
       ...todo,
-      ownerEmail: owner?.email,
+      ownerEmail,
       ownerName: owner?.fullName,
       ownerRole: owner?.role,
     };
@@ -182,12 +197,14 @@ export class TodosService {
     // Get owner information
     const owner = await this.db.query.users.findFirst({
       where: eq(users.id, updatedTodo.ownerId),
-      columns: { email: true, fullName: true, role: true },
+      columns: { localUsername: true, googleEmail: true, msEmail: true, fullName: true, role: true },
     });
+
+    const ownerEmail = owner ? (owner.localUsername || owner.googleEmail || owner.msEmail || '') : undefined;
 
     return {
       ...updatedTodo,
-      ownerEmail: owner?.email,
+      ownerEmail,
       ownerName: owner?.fullName,
       ownerRole: owner?.role,
     };

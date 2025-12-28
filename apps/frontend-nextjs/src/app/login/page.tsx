@@ -20,8 +20,8 @@ export default function LoginPage() {
     try {
       await login(email, password, rememberMe);
       router.push('/dashboard/todos');
-    } catch (err: any) {
-      setError(err?.message || 'Login failed. Please check your credentials.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed. Please check your credentials.');
     }
   };
 
@@ -95,7 +95,7 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted">
-              Don't have an account?{' '}
+              Do not have an account?{' '}
               <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
                 Sign up
               </Link>

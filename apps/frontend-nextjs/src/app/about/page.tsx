@@ -22,7 +22,7 @@ export default function AboutPage() {
             <h2 className="text-2xl font-semibold text-foreground mb-4">Our Mission</h2>
             <p className="text-muted leading-relaxed mb-4">
               TodoGizmo was created with a simple goal: make task management effortless and enjoyable.
-              We believe that staying organized shouldn't be complicated or overwhelming.
+              We believe that staying organized should not be complicated or overwhelming.
             </p>
             <p className="text-muted leading-relaxed">
               Our mission is to provide a beautiful, intuitive platform that helps individuals and teams

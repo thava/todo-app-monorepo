@@ -63,6 +63,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadUsers = async () => {
@@ -73,8 +74,8 @@ export default function AdminPage() {
     try {
       const data = await api.getUsers(accessToken) as User[];
       setUsers(data);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load users');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load users');
     } finally {
       setIsLoading(false);
     }
@@ -150,19 +151,19 @@ export default function AdminPage() {
     setError('');
 
     try {
-      const newUser = await api.createUser(accessToken, {
+      await api.createUser(accessToken, {
         email: createEmail,
         password: createPassword,
         fullName: createFullName,
         role: createRole,
         autoverify: createAutoVerify,
-      }) as { user: User };
+      });
 
       // Reload users list to get the newly created user
       await loadUsers();
       resetCreateForm();
-    } catch (err: any) {
-      setError(err?.message || 'Failed to create user');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create user');
     }
   };
 
@@ -173,7 +174,13 @@ export default function AdminPage() {
     setError('');
 
     // Build update payload with only edited fields
-    const updateData: any = {};
+    const updateData: Partial<{
+      fullName: string;
+      email: string;
+      role: 'guest' | 'admin' | 'sysadmin';
+      password: string;
+      emailVerifiedAt: string | null;
+    }> = {};
     if (editableFields.fullName) updateData.fullName = fullName;
     if (editableFields.email) updateData.email = email;
     if (editableFields.role) updateData.role = role;
@@ -196,8 +203,8 @@ export default function AdminPage() {
       const updatedUser = await api.updateUser(accessToken, editingUser.id, updateData) as User;
       setUsers(users.map((u) => (u.id === editingUser.id ? updatedUser : u)));
       resetForm();
-    } catch (err: any) {
-      setError(err?.message || 'Failed to update user');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update user');
       // Scroll to top to show error message (accounts for fixed navbar)
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -217,8 +224,8 @@ export default function AdminPage() {
       await api.deleteUser(accessToken, deleteConfirm.userId);
       setUsers(users.filter((u) => u.id !== deleteConfirm.userId));
       setDeleteConfirm({ isOpen: false, userId: null });
-    } catch (err: any) {
-      setError(err?.message || 'Failed to delete user');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete user');
       setDeleteConfirm({ isOpen: false, userId: null });
       // Scroll to top to show error message (accounts for fixed navbar)
       setTimeout(() => {
@@ -333,7 +340,7 @@ export default function AdminPage() {
               <select
                 id="create-role"
                 value={createRole}
-                onChange={(e) => setCreateRole(e.target.value as any)}
+                onChange={(e) => setCreateRole(e.target.value as 'guest' | 'admin' | 'sysadmin')}
                 className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="guest">Guest</option>
@@ -453,7 +460,7 @@ export default function AdminPage() {
               <select
                 id="role"
                 value={role}
-                onChange={(e) => setRole(e.target.value as any)}
+                onChange={(e) => setRole(e.target.value as 'guest' | 'admin' | 'sysadmin')}
                 disabled={!editableFields.role || !isSysadmin}
                 className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
               >
@@ -512,7 +519,7 @@ export default function AdminPage() {
               <select
                 id="emailVerifiedAt"
                 value={emailVerifiedAt}
-                onChange={(e) => setEmailVerifiedAt(e.target.value as any)}
+                onChange={(e) => setEmailVerifiedAt(e.target.value as 'keep' | 'null' | 'now')}
                 disabled={!editableFields.emailVerifiedAt || !isSysadmin}
                 className="w-full px-3 py-1 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
               >

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, pgEnum, boolean } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
@@ -8,11 +8,27 @@ export const roleEnum = pgEnum('role', ['guest', 'admin', 'sysadmin']);
 // Users table
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
-  email: varchar('email', { length: 255 }).notNull().unique(),
   fullName: varchar('full_name', { length: 255 }).notNull(),
-  passwordHashPrimary: text('password_hash_primary').notNull(),
   role: roleEnum('role').notNull().default('guest'),
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+
+  // Contact email (for future use)
+  contactEmail: text('contact_email'),
+
+  // Google identity (optional)
+  googleSub: text('google_sub').unique(),
+  googleEmail: text('google_email'),
+
+  // Microsoft identity (optional)
+  msOid: uuid('ms_oid'),
+  msTid: uuid('ms_tid'),
+  msEmail: text('ms_email'),
+
+  // Local identity (optional, primarily for dev/test + admin only)
+  localEnabled: boolean('local_enabled').notNull().default(false),
+  localUsername: varchar('local_username', { length: 255 }).unique(),
+  localPasswordHash: text('local_password_hash'),
+
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

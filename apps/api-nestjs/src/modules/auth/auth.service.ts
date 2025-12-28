@@ -48,13 +48,13 @@ export class AuthService {
   ): Promise<RegisterResponseDto> {
     const { email, password, fullName, autoverify = false, role = 'guest' } = registerDto;
 
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
+    // Normalize email (will be used as local username)
+    const normalizedUsername = email.toLowerCase().trim();
 
     // Validate password strength
     const passwordValidation = this.passwordService.validatePasswordStrength(
       password,
-      normalizedEmail,
+      normalizedUsername,
     );
 
     if (!passwordValidation.isValid) {
@@ -64,13 +64,13 @@ export class AuthService {
       });
     }
 
-    // Check if user already exists
+    // Check if user already exists with this local username
     const existingUser = await this.db.query.users.findFirst({
-      where: eq(users.email, normalizedEmail),
+      where: eq(users.localUsername, normalizedUsername),
     });
 
     if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      throw new ConflictException('User with this username already exists');
     }
 
     // Hash password
@@ -80,9 +80,10 @@ export class AuthService {
     const [newUser] = await this.db
       .insert(users)
       .values({
-        email: normalizedEmail,
+        localUsername: normalizedUsername,
         fullName: fullName.trim(),
-        passwordHashPrimary: passwordHash,
+        localPasswordHash: passwordHash,
+        localEnabled: true,
         role: role,
         emailVerifiedAt: autoverify ? new Date() : null,
       })
@@ -92,21 +93,21 @@ export class AuthService {
     await this.auditService.logAuth(
       'REGISTER',
       newUser.id,
-      { email: newUser.email, role: newUser.role, autoverified: autoverify },
+      { localUsername: newUser.localUsername, role: newUser.role, autoverified: autoverify },
       ipAddress,
       userAgent,
     );
 
     // Send verification email only if autoverify is false
-    if (!autoverify) {
-      await this.sendVerificationEmail(newUser.id, newUser.email, newUser.fullName);
+    if (!autoverify && newUser.localUsername) {
+      await this.sendVerificationEmail(newUser.id, newUser.localUsername, newUser.fullName);
     }
 
     // Return user info without tokens (email verification required unless autoverified)
     return {
       user: {
         id: newUser.id,
-        email: newUser.email,
+        email: newUser.localUsername || '',
         fullName: newUser.fullName,
         role: newUser.role,
         emailVerified: autoverify,
@@ -124,12 +125,12 @@ export class AuthService {
   ): Promise<AuthResponseDto> {
     const { email, password } = loginDto;
 
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
+    // Normalize username
+    const normalizedUsername = email.toLowerCase().trim();
 
-    // Find user
+    // Find user by local username
     const user = await this.db.query.users.findFirst({
-      where: eq(users.email, normalizedEmail),
+      where: eq(users.localUsername, normalizedUsername),
     });
 
     if (!user) {
@@ -137,16 +138,39 @@ export class AuthService {
       await this.auditService.logAuth(
         'LOGIN_FAILURE',
         undefined,
-        { email: normalizedEmail, reason: 'user_not_found' },
+        { localUsername: normalizedUsername, reason: 'user_not_found' },
         ipAddress,
         userAgent,
       );
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Check if local auth is enabled
+    if (!user.localEnabled) {
+      await this.auditService.logAuth(
+        'LOGIN_FAILURE',
+        user.id,
+        { localUsername: user.localUsername, reason: 'local_auth_disabled' },
+        ipAddress,
+        userAgent,
+      );
+      throw new UnauthorizedException('Local authentication is disabled for this user');
+    }
+
     // Verify password
+    if (!user.localPasswordHash) {
+      await this.auditService.logAuth(
+        'LOGIN_FAILURE',
+        user.id,
+        { localUsername: user.localUsername, reason: 'no_password_set' },
+        ipAddress,
+        userAgent,
+      );
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
     const isPasswordValid = await this.passwordService.verifyPassword(
-      user.passwordHashPrimary,
+      user.localPasswordHash,
       password,
     );
 
@@ -155,7 +179,7 @@ export class AuthService {
       await this.auditService.logAuth(
         'LOGIN_FAILURE',
         user.id,
-        { email: user.email, reason: 'invalid_password' },
+        { localUsername: user.localUsername, reason: 'invalid_password' },
         ipAddress,
         userAgent,
       );
@@ -168,7 +192,7 @@ export class AuthService {
       await this.auditService.logAuth(
         'LOGIN_FAILURE',
         user.id,
-        { email: user.email, reason: 'email_not_verified' },
+        { localUsername: user.localUsername, reason: 'email_not_verified' },
         ipAddress,
         userAgent,
       );
@@ -179,7 +203,7 @@ export class AuthService {
     await this.auditService.logAuth(
       'LOGIN_SUCCESS',
       user.id,
-      { email: user.email },
+      { localUsername: user.localUsername },
       ipAddress,
       userAgent,
     );
@@ -285,10 +309,13 @@ export class AuthService {
     userAgent?: string,
     ipAddress?: string,
   ): Promise<AuthResponseDto> {
+    // Use localUsername as email for backward compatibility, or use google/ms email if available
+    const userEmail = user.localUsername || user.googleEmail || user.msEmail || '';
+
     // Generate access token
     const accessToken = await this.tokenService.generateAccessToken({
       sub: user.id,
-      email: user.email,
+      email: userEmail,
       role: user.role,
     });
 
@@ -326,7 +353,7 @@ export class AuthService {
       refreshToken,
       user: {
         id: user.id,
-        email: user.email,
+        email: userEmail,
         fullName: user.fullName,
         role: user.role,
         emailVerified: !!user.emailVerifiedAt,
@@ -444,22 +471,23 @@ export class AuthService {
       .where(eq(emailVerificationTokens.userId, userId));
 
     // Send new verification email
-    await this.sendVerificationEmail(user.id, user.email, user.fullName);
+    const userEmail = user.localUsername || user.contactEmail || '';
+    await this.sendVerificationEmail(user.id, userEmail, user.fullName);
   }
 
   /**
    * Request password reset
    */
   async requestPasswordReset(email: string): Promise<void> {
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedUsername = email.toLowerCase().trim();
 
-    // Find user
+    // Find user by local username
     const user = await this.db.query.users.findFirst({
-      where: eq(users.email, normalizedEmail),
+      where: eq(users.localUsername, normalizedUsername),
     });
 
     // Always return success even if user doesn't exist (security best practice)
-    if (!user) {
+    if (!user || !user.localEnabled) {
       return;
     }
 
@@ -484,7 +512,8 @@ export class AuthService {
     });
 
     // Send email
-    await this.emailService.sendPasswordResetEmail(user.email, user.fullName, token);
+    const userEmail = user.localUsername || user.contactEmail || '';
+    await this.emailService.sendPasswordResetEmail(userEmail, user.fullName, token);
   }
 
   /**
@@ -520,9 +549,10 @@ export class AuthService {
     }
 
     // Validate new password
+    const userEmail = user.localUsername || user.contactEmail || '';
     const passwordValidation = this.passwordService.validatePasswordStrength(
       newPassword,
-      user.email,
+      userEmail,
     );
 
     if (!passwordValidation.isValid) {
@@ -538,7 +568,7 @@ export class AuthService {
     // Update user password
     await this.db
       .update(users)
-      .set({ passwordHashPrimary: passwordHash })
+      .set({ localPasswordHash: passwordHash })
       .where(eq(users.id, user.id));
 
     // Mark token as used
@@ -554,6 +584,6 @@ export class AuthService {
       .where(eq(refreshTokenSessions.userId, user.id));
 
     // Send confirmation email
-    await this.emailService.sendPasswordChangedEmail(user.email, user.fullName);
+    await this.emailService.sendPasswordChangedEmail(userEmail, user.fullName);
   }
 }
