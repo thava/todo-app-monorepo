@@ -1,7 +1,7 @@
 """JWT token generation and verification service."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
@@ -59,7 +59,7 @@ class JWTService:
         Returns:
             JWT access token
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         payload = {
             "sub": str(user_id),
             "email": email,
@@ -83,7 +83,7 @@ class JWTService:
         Returns:
             JWT refresh token
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         payload = {
             "sub": str(user_id),
             "sessionId": str(session_id),

@@ -1,7 +1,7 @@
 """Integration tests for authentication endpoints."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session
@@ -147,13 +147,14 @@ class TestAuthLogin:
         # Create unverified user
         user = User(
             id=uuid.uuid4(),
-            email="unverified@example.com",
+            local_username="unverified@example.com",
             full_name="Unverified User",
-            password_hash_primary=password_service.hash_password("Password123!"),
+            local_password_hash=password_service.hash_password("Password123!"),
+            local_enabled=True,
             role=RoleEnum.GUEST,
             email_verified_at=None,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
         session.add(user)
         session.commit()

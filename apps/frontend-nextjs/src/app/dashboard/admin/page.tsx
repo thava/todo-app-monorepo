@@ -12,6 +12,9 @@ interface User {
   role: 'guest' | 'admin' | 'sysadmin';
   emailVerified: boolean;
   emailVerifiedAt: string | null;
+  localUsername?: string | null;
+  googleEmail?: string | null;
+  msEmail?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -31,9 +34,15 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showMergeForm, setShowMergeForm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; userId: string | null }>({
     isOpen: false,
     userId: null,
+  });
+  const [mergeConfirm, setMergeConfirm] = useState<{ isOpen: boolean; sourceUser: User | null; destUser: User | null }>({
+    isOpen: false,
+    sourceUser: null,
+    destUser: null,
   });
 
   // Form state
@@ -56,6 +65,10 @@ export default function AdminPage() {
   const [createPassword, setCreatePassword] = useState('');
   const [createRole, setCreateRole] = useState<'guest' | 'admin' | 'sysadmin'>('guest');
   const [createAutoVerify, setCreateAutoVerify] = useState(false);
+
+  // Merge accounts form state
+  const [mergeSourceUserId, setMergeSourceUserId] = useState('');
+  const [mergeDestUserId, setMergeDestUserId] = useState('');
 
   const isSysadmin = currentUser?.role === 'sysadmin';
   const editFormRef = React.useRef<HTMLDivElement>(null);
@@ -131,6 +144,13 @@ export default function AdminPage() {
     setError('');
   };
 
+  const resetMergeForm = () => {
+    setShowMergeForm(false);
+    setMergeSourceUserId('');
+    setMergeDestUserId('');
+    setError('');
+  };
+
   const startCreate = () => {
     if (showCreateForm) {
       resetCreateForm();
@@ -138,6 +158,21 @@ export default function AdminPage() {
       setError('');
       setShowCreateForm(true);
       setEditingUser(null); // Close edit form if open
+      setShowMergeForm(false); // Close merge form if open
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
+    }
+  };
+
+  const startMerge = () => {
+    if (showMergeForm) {
+      resetMergeForm();
+    } else {
+      setError('');
+      setShowMergeForm(true);
+      setEditingUser(null); // Close edit form if open
+      setShowCreateForm(false); // Close create form if open
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 100);
@@ -238,6 +273,54 @@ export default function AdminPage() {
     setDeleteConfirm({ isOpen: false, userId: null });
   };
 
+  const handleMergeClick = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accessToken || !isSysadmin) return;
+    if (!mergeSourceUserId || !mergeDestUserId) {
+      setError('Please select both source and destination users');
+      return;
+    }
+    if (mergeSourceUserId === mergeDestUserId) {
+      setError('Source and destination users must be different');
+      return;
+    }
+
+    const sourceUser = users.find((u) => u.id === mergeSourceUserId);
+    const destUser = users.find((u) => u.id === mergeDestUserId);
+
+    if (!sourceUser || !destUser) {
+      setError('Selected users not found');
+      return;
+    }
+
+    setMergeConfirm({ isOpen: true, sourceUser, destUser });
+  };
+
+  const handleMergeConfirm = async () => {
+    if (!accessToken || !mergeConfirm.sourceUser || !mergeConfirm.destUser || !isSysadmin) return;
+
+    setError('');
+    try {
+      await api.mergeAccounts(accessToken, mergeConfirm.sourceUser.id, mergeConfirm.destUser.id);
+
+      // Reload users list after successful merge
+      await loadUsers();
+
+      setMergeConfirm({ isOpen: false, sourceUser: null, destUser: null });
+      resetMergeForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to merge accounts');
+      setMergeConfirm({ isOpen: false, sourceUser: null, destUser: null });
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
+    }
+  };
+
+  const handleMergeCancel = () => {
+    setMergeConfirm({ isOpen: false, sourceUser: null, destUser: null });
+  };
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'sysadmin':
@@ -258,17 +341,45 @@ export default function AdminPage() {
     }));
   };
 
+  const getUserIdentities = (user: User): { local: boolean; google: boolean; microsoft: boolean } => {
+    return {
+      local: !!user.localUsername,
+      google: !!user.googleEmail,
+      microsoft: !!user.msEmail,
+    };
+  };
+
+  const getConflicts = (sourceUser: User, destUser: User): string[] => {
+    const sourceIdentities = getUserIdentities(sourceUser);
+    const destIdentities = getUserIdentities(destUser);
+    const conflicts: string[] = [];
+
+    if (sourceIdentities.local && destIdentities.local) conflicts.push('Local');
+    if (sourceIdentities.google && destIdentities.google) conflicts.push('Google');
+    if (sourceIdentities.microsoft && destIdentities.microsoft) conflicts.push('Microsoft');
+
+    return conflicts;
+  };
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <h1 className="text-3xl font-bold text-foreground">User Administration</h1>
         {isSysadmin && (
-          <button
-            onClick={startCreate}
-            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-sm transition-colors"
-          >
-            {showCreateForm ? 'Cancel' : 'Create User'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={startCreate}
+              className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-sm transition-colors"
+            >
+              {showCreateForm ? 'Cancel' : 'Create User'}
+            </button>
+            <button
+              onClick={startMerge}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-sm transition-colors"
+            >
+              {showMergeForm ? 'Cancel' : 'Merge Accounts'}
+            </button>
+          </div>
         )}
       </div>
 
@@ -284,6 +395,123 @@ export default function AdminPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+        </div>
+      )}
+
+      {showMergeForm && (
+        <div className="mb-8 bg-surface-primary rounded-xl shadow-md border border-border p-6">
+          <h2 className="text-xl font-semibold text-foreground mb-4">Merge User Accounts</h2>
+          <p className="text-sm text-muted mb-4">
+            Merge the source account into the destination account. The source account will be deleted after merge.
+            This will fail if there are overlapping identities (Local, Google, or Microsoft).
+          </p>
+          <form onSubmit={handleMergeClick} className="space-y-4">
+            <div>
+              <label htmlFor="merge-source" className="block text-sm font-medium text-foreground mb-1">
+                Source User (will be deleted) *
+              </label>
+              <select
+                id="merge-source"
+                value={mergeSourceUserId}
+                onChange={(e) => setMergeSourceUserId(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Select a user...</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.fullName} ({user.email}) - {user.role}
+                  </option>
+                ))}
+              </select>
+              {mergeSourceUserId && (() => {
+                const sourceUser = users.find((u) => u.id === mergeSourceUserId);
+                if (!sourceUser) return null;
+                const identities = getUserIdentities(sourceUser);
+                return (
+                  <div className="mt-2 p-2 bg-surface-secondary rounded text-xs space-y-1">
+                    <div className="font-medium">Identities:</div>
+                    {identities.local && <div>✓ Local: {sourceUser.localUsername}</div>}
+                    {identities.google && <div>✓ Google: {sourceUser.googleEmail}</div>}
+                    {identities.microsoft && <div>✓ Microsoft: {sourceUser.msEmail}</div>}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div>
+              <label htmlFor="merge-dest" className="block text-sm font-medium text-foreground mb-1">
+                Destination User (will receive merged identities) *
+              </label>
+              <select
+                id="merge-dest"
+                value={mergeDestUserId}
+                onChange={(e) => setMergeDestUserId(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Select a user...</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.fullName} ({user.email}) - {user.role}
+                  </option>
+                ))}
+              </select>
+              {mergeDestUserId && (() => {
+                const destUser = users.find((u) => u.id === mergeDestUserId);
+                if (!destUser) return null;
+                const identities = getUserIdentities(destUser);
+                return (
+                  <div className="mt-2 p-2 bg-surface-secondary rounded text-xs space-y-1">
+                    <div className="font-medium">Identities:</div>
+                    {identities.local && <div>✓ Local: {destUser.localUsername}</div>}
+                    {identities.google && <div>✓ Google: {destUser.googleEmail}</div>}
+                    {identities.microsoft && <div>✓ Microsoft: {destUser.msEmail}</div>}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {mergeSourceUserId && mergeDestUserId && (() => {
+              const sourceUser = users.find((u) => u.id === mergeSourceUserId);
+              const destUser = users.find((u) => u.id === mergeDestUserId);
+              if (!sourceUser || !destUser) return null;
+              const conflicts = getConflicts(sourceUser, destUser);
+              if (conflicts.length > 0) {
+                return (
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+                      Cannot merge - overlapping identities: {conflicts.join(', ')}
+                    </p>
+                  </div>
+                );
+              }
+              return (
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                  <p className="text-sm text-green-600 dark:text-green-400">
+                    ✓ No conflicts - merge can proceed
+                  </p>
+                </div>
+              );
+            })()}
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="submit"
+                disabled={!mergeSourceUserId || !mergeDestUserId}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Merge Accounts
+              </button>
+              <button
+                type="button"
+                onClick={resetMergeForm}
+                className="px-4 py-2 bg-surface-primary hover:bg-surface-secondary border border-border text-foreground font-medium rounded-lg shadow-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -573,9 +801,24 @@ export default function AdminPage() {
                       <span className="text-green-600 dark:text-green-400 text-xs">✓ Verified</span>
                     )}
                   </div>
-                  <p className="text-sm text-muted mb-2">{user.email}</p>
+                  <div className="text-sm text-muted mb-2 space-y-1">
+                    {user.localUsername && (
+                      <div>{user.localUsername}</div>
+                    )}
+                    {user.googleEmail && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">Google</span>
+                        <span>{user.googleEmail}</span>
+                      </div>
+                    )}
+                    {user.msEmail && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded">Microsoft</span>
+                        <span>{user.msEmail}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center gap-4 text-xs text-muted">
-                    <span>ID: {user.id}</span>
                     <span>Created: {new Date(user.createdAt).toLocaleDateString()}</span>
                     {user.emailVerifiedAt && (
                       <span>Verified: {new Date(user.emailVerifiedAt).toLocaleDateString()}</span>
@@ -616,6 +859,22 @@ export default function AdminPage() {
         variant="danger"
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
+      />
+
+      {/* Merge Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={mergeConfirm.isOpen}
+        title="Merge Accounts"
+        message={
+          mergeConfirm.sourceUser && mergeConfirm.destUser
+            ? `Are you sure you want to merge ${mergeConfirm.sourceUser.fullName} (${mergeConfirm.sourceUser.email}) into ${mergeConfirm.destUser.fullName} (${mergeConfirm.destUser.email})? The source account will be deleted and cannot be recovered.`
+            : ''
+        }
+        confirmLabel="Merge"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleMergeConfirm}
+        onCancel={handleMergeCancel}
       />
     </div>
   );

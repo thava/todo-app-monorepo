@@ -1,6 +1,6 @@
 # Todo App Monorepo
 
-A production-ready full-stack Todo application with authentication, built as a monorepo supporting multiple backend and frontend implementations.
+A production-ready full-stack Todo application with OAuth authentication (Google, Microsoft) and local auth support, built as a monorepo supporting multiple backend and frontend implementations.
 
 ## 🏗️ Monorepo Structure
 
@@ -8,8 +8,12 @@ A production-ready full-stack Todo application with authentication, built as a m
 todo-app/
 ├── apps/
 │   ├── api-nestjs/          # NestJS backend implementation
+│   ├── api-fastapi/         # FastAPI Python backend 
+│   ├── api-flask/           # Flask based backend
+│   ├── api-spring/          # Spring based backend
 │   ├── frontend-nextjs/     # Next.js SPA frontend
 │   ├── frontend-astro/      # Astro SPA frontend
+│   ├── frontend-nuxtjs/     # Vue based fullstack framework
 │   └── [future backends]    # api-fastify, api-express, etc.
 ├── packages/
 │   ├── database/            # Shared Drizzle ORM schemas & types
@@ -46,10 +50,10 @@ pnpm db:reinit
 
 ```bash
 # Start NestJS API (development mode)
-pnpm dev:api
+pnpm dev:nestjs
 
 # Start Next.js frontend (in another terminal)
-pnpm dev:frontend
+pnpm dev:nextjs
 
 # Or run both concurrently (if you have concurrently installed)
 pnpm dev
@@ -107,10 +111,10 @@ pnpm migration:generate # Generate new migration
 pnpm migration:run      # Run pending migrations
 
 # Development
-pnpm dev:api            # Start NestJS API
-pnpm dev:frontend       # Start Next.js frontend
-pnpm build:api          # Build NestJS API
-pnpm build:frontend     # Build Next.js frontend
+pnpm dev:nestjs            # Start NestJS API
+pnpm dev:nextjs       # Start Next.js frontend
+pnpm build:nestjs          # Build NestJS API
+pnpm build:nextjs     # Build Next.js frontend
 ```
 
 ## 🗄️ Database
@@ -174,7 +178,7 @@ import { PublicUser, TodoPriority } from '@todo-app/database';
 
 ### Adding New Backends
 
-1. Create new app: `apps/api-fastify/`
+1. Create new app, for example: `apps/api-fastify/`
 2. Add dependencies in package.json:
    ```json
    {

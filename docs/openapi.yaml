@@ -5,8 +5,8 @@ paths:
       operationId: AppController_getHello
       parameters: []
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
       tags:
         - App
   /auth/register:
@@ -19,18 +19,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RegisterDto"
+              $ref: '#/components/schemas/RegisterDto'
       responses:
-        "201":
+        '201':
           description: User registered successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RegisterResponseDto"
-        "400":
+                $ref: '#/components/schemas/RegisterResponseDto'
+        '400':
           description: Invalid input or email already exists
       summary: Register a new user
-      tags: &a1
+      tags:
         - auth
   /auth/login:
     post:
@@ -42,18 +42,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginDto"
+              $ref: '#/components/schemas/LoginDto'
       responses:
-        "200":
+        '200':
           description: Login successful
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthResponseDto"
-        "401":
+                $ref: '#/components/schemas/AuthResponseDto'
+        '401':
           description: Invalid credentials
       summary: Login user
-      tags: *a1
+      tags:
+        - auth
   /auth/refresh:
     post:
       description: Generates a new access token using a valid refresh token
@@ -64,18 +65,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RefreshTokenDto"
+              $ref: '#/components/schemas/RefreshTokenDto'
       responses:
-        "200":
+        '200':
           description: Token refreshed successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthResponseDto"
-        "401":
+                $ref: '#/components/schemas/AuthResponseDto'
+        '401':
           description: Invalid or expired refresh token
       summary: Refresh access token
-      tags: *a1
+      tags:
+        - auth
   /auth/logout:
     post:
       description: Invalidates the refresh token and logs out the user
@@ -86,14 +88,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RefreshTokenDto"
+              $ref: '#/components/schemas/RefreshTokenDto'
       responses:
-        "204":
+        '204':
           description: Logout successful
-        "401":
+        '401':
           description: Invalid refresh token
       summary: Logout user
-      tags: *a1
+      tags:
+        - auth
   /auth/verify-email:
     get:
       description: Verifies user email using the token sent via email
@@ -107,26 +110,28 @@ paths:
             example: abc123def456
             type: string
       responses:
-        "200":
+        '200':
           description: Email verified successfully
-        "400":
+        '400':
           description: Invalid or expired token
       summary: Verify email address
-      tags: *a1
+      tags:
+        - auth
   /auth/resend-verification:
     post:
       description: Sends a new email verification link to the authenticated user
       operationId: AuthController_resendVerification
       parameters: []
       responses:
-        "200":
+        '200':
           description: Verification email sent
-        "401":
+        '401':
           description: Unauthorized
       security:
         - bearer: []
       summary: Resend verification email
-      tags: *a1
+      tags:
+        - auth
   /auth/request-password-reset:
     post:
       description: Sends a password reset link to the provided email address if it exists
@@ -137,12 +142,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RequestPasswordResetDto"
+              $ref: '#/components/schemas/RequestPasswordResetDto'
       responses:
-        "200":
+        '200':
           description: Password reset request processed
       summary: Request password reset
-      tags: *a1
+      tags:
+        - auth
   /auth/reset-password:
     post:
       description: Resets user password using the token received via email
@@ -153,28 +159,177 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ResetPasswordDto"
+              $ref: '#/components/schemas/ResetPasswordDto'
       responses:
-        "200":
+        '200':
           description: Password reset successfully
-        "400":
+        '400':
           description: Invalid or expired token
       summary: Reset password
-      tags: *a1
+      tags:
+        - auth
+  /oauth/google/login:
+    get:
+      description: Redirects to Google OAuth authorization endpoint
+      operationId: OAuthController_googleLogin
+      parameters:
+        - name: redirect
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: frontend
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: Initiate Google OAuth login flow
+      tags:
+        - oauth
+  /oauth/google/link:
+    post:
+      description: >-
+        Redirects to Google OAuth to link Google account to current user.
+        Requires access_token in request body.
+      operationId: OAuthController_googleLink
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      summary: Initiate Google OAuth account linking flow
+      tags:
+        - oauth
+  /oauth/google/callback:
+    get:
+      description: Handles the OAuth callback from Google
+      operationId: OAuthController_googleCallback
+      parameters:
+        - name: code
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: state
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: Google OAuth callback endpoint
+      tags:
+        - oauth
+  /oauth/microsoft/login:
+    get:
+      description: Redirects to Microsoft OAuth authorization endpoint
+      operationId: OAuthController_microsoftLogin
+      parameters:
+        - name: redirect
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: frontend
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: Initiate Microsoft OAuth login flow
+      tags:
+        - oauth
+  /oauth/microsoft/link:
+    post:
+      description: >-
+        Redirects to Microsoft OAuth to link Microsoft account to current user.
+        Requires access_token in request body.
+      operationId: OAuthController_microsoftLink
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      summary: Initiate Microsoft OAuth account linking flow
+      tags:
+        - oauth
+  /oauth/microsoft/callback:
+    get:
+      description: Handles the OAuth callback from Microsoft
+      operationId: OAuthController_microsoftCallback
+      parameters:
+        - name: code
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: state
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: Microsoft OAuth callback endpoint
+      tags:
+        - oauth
+  /oauth/google/unlink:
+    post:
+      description: >-
+        Removes Google identity from current user account. Requires at least one
+        other identity to remain.
+      operationId: OAuthController_unlinkGoogle
+      parameters: []
+      responses:
+        '204':
+          description: Google account unlinked successfully
+        '400':
+          description: Cannot unlink - user must have at least one identity
+        '404':
+          description: Google account not linked
+      security:
+        - bearer: []
+      summary: Unlink Google account from current user
+      tags:
+        - oauth
+  /oauth/microsoft/unlink:
+    post:
+      description: >-
+        Removes Microsoft identity from current user account. Requires at least
+        one other identity to remain.
+      operationId: OAuthController_unlinkMicrosoft
+      parameters: []
+      responses:
+        '204':
+          description: Microsoft account unlinked successfully
+        '400':
+          description: Cannot unlink - user must have at least one identity
+        '404':
+          description: Microsoft account not linked
+      security:
+        - bearer: []
+      summary: Unlink Microsoft account from current user
+      tags:
+        - oauth
   /me:
     get:
       description: Retrieves the profile of the authenticated user
       operationId: UsersController_getProfile
       parameters: []
       responses:
-        "200":
+        '200':
           description: Profile retrieved successfully
-        "401":
+        '401':
           description: Unauthorized
-      security: &a2
+      security:
         - bearer: []
       summary: Get current user profile
-      tags: &a3
+      tags:
         - me
     patch:
       description: Updates the profile of the authenticated user
@@ -185,17 +340,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateProfileDto"
+              $ref: '#/components/schemas/UpdateProfileDto'
       responses:
-        "200":
+        '200':
           description: Profile updated successfully
-        "400":
+        '400':
           description: Invalid input data
-        "401":
+        '401':
           description: Unauthorized
-      security: *a2
+      security:
+        - bearer: []
       summary: Update current user profile
-      tags: *a3
+      tags:
+        - me
   /todos:
     post:
       description: Creates a new todo item for the authenticated user
@@ -206,36 +363,40 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateTodoDto"
+              $ref: '#/components/schemas/CreateTodoDto'
       responses:
-        "201":
+        '201':
           description: Todo created successfully
-        "400":
+        '400':
           description: Invalid input data
-        "401":
+        '401':
           description: Unauthorized
-      security: &a4
+      security:
         - bearer: []
       summary: Create a new todo
-      tags: &a5
+      tags:
         - todos
     get:
-      description: Retrieves all todos. Regular users see only their own todos, while
+      description: >-
+        Retrieves all todos. Regular users see only their own todos, while
         admins and sysadmins see all todos.
       operationId: TodosController_findAll
       parameters: []
       responses:
-        "200":
+        '200':
           description: List of todos retrieved successfully
-        "401":
+        '401':
           description: Unauthorized
-      security: *a4
+      security:
+        - bearer: []
       summary: Get all todos
-      tags: *a5
+      tags:
+        - todos
   /todos/{id}:
     get:
-      description: Retrieves a specific todo by its ID. Regular users can only access
-        their own todos.
+      description: >-
+        Retrieves a specific todo by its ID. Regular users can only access their
+        own todos.
       operationId: TodosController_findOne
       parameters:
         - name: id
@@ -244,17 +405,19 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Todo retrieved successfully
-        "401":
+        '401':
           description: Unauthorized
-        "403":
+        '403':
           description: Forbidden - Not authorized to access this todo
-        "404":
+        '404':
           description: Todo not found
-      security: *a4
+      security:
+        - bearer: []
       summary: Get a todo by ID
-      tags: *a5
+      tags:
+        - todos
     patch:
       description: Updates a todo by its ID. Regular users can only update their own todos.
       operationId: TodosController_update
@@ -269,21 +432,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateTodoDto"
+              $ref: '#/components/schemas/UpdateTodoDto'
       responses:
-        "200":
+        '200':
           description: Todo updated successfully
-        "400":
+        '400':
           description: Invalid input data
-        "401":
+        '401':
           description: Unauthorized
-        "403":
+        '403':
           description: Forbidden - Not authorized to update this todo
-        "404":
+        '404':
           description: Todo not found
-      security: *a4
+      security:
+        - bearer: []
       summary: Update a todo
-      tags: *a5
+      tags:
+        - todos
     delete:
       description: Deletes a todo by its ID. Regular users can only delete their own todos.
       operationId: TodosController_remove
@@ -294,39 +459,41 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: Todo deleted successfully
-        "401":
+        '401':
           description: Unauthorized
-        "403":
+        '403':
           description: Forbidden - Not authorized to delete this todo
-        "404":
+        '404':
           description: Todo not found
-      security: *a4
+      security:
+        - bearer: []
       summary: Delete a todo
-      tags: *a5
+      tags:
+        - todos
   /admin/users:
     get:
       description: Retrieves all users in the system. Requires admin or sysadmin role.
       operationId: AdminController_getAllUsers
       parameters: []
       responses:
-        "200":
+        '200':
           description: List of users retrieved successfully
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/UserResponseDto"
-        "401":
+                  $ref: '#/components/schemas/UserResponseDto'
+        '401':
           description: Unauthorized
-        "403":
+        '403':
           description: Forbidden - Requires admin or sysadmin role
-      security: &a6
+      security:
         - bearer: []
       summary: Get all users
-      tags: &a7
+      tags:
         - admin
   /admin/users/{id}:
     get:
@@ -339,24 +506,27 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: User retrieved successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponseDto"
-        "401":
+                $ref: '#/components/schemas/UserResponseDto'
+        '401':
           description: Unauthorized
-        "403":
+        '403':
           description: Forbidden - Requires admin or sysadmin role
-        "404":
+        '404':
           description: User not found
-      security: *a6
+      security:
+        - bearer: []
       summary: Get user by ID
-      tags: *a7
+      tags:
+        - admin
     patch:
-      description: Updates a user by their ID. Can update email, password, full name,
-        role, and email verification status. Requires sysadmin role.
+      description: >-
+        Updates a user by their ID. Can update email, password, full name, role,
+        and email verification status. Requires sysadmin role.
       operationId: AdminController_updateUser
       parameters:
         - name: id
@@ -369,25 +539,27 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateUserDto"
+              $ref: '#/components/schemas/UpdateUserDto'
       responses:
-        "200":
+        '200':
           description: User updated successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponseDto"
-        "400":
+                $ref: '#/components/schemas/UserResponseDto'
+        '400':
           description: Invalid input data
-        "401":
+        '401':
           description: Unauthorized
-        "403":
+        '403':
           description: Forbidden - Requires sysadmin role
-        "404":
+        '404':
           description: User not found
-      security: *a6
+      security:
+        - bearer: []
       summary: Update user
-      tags: *a7
+      tags:
+        - admin
     delete:
       description: Deletes a user by their ID. Requires sysadmin role.
       operationId: AdminController_deleteUser
@@ -398,25 +570,62 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: User deleted successfully
-        "401":
+        '401':
           description: Unauthorized
-        "403":
+        '403':
           description: Forbidden - Requires sysadmin role
-        "404":
+        '404':
           description: User not found
-      security: *a6
+      security:
+        - bearer: []
       summary: Delete user
-      tags: *a7
+      tags:
+        - admin
+  /admin/merge-users:
+    post:
+      description: >-
+        Merges source user account into destination user account. Source account
+        will be deleted after merge. Fails if there are overlapping identities.
+        Requires sysadmin role.
+      operationId: AdminController_mergeAccounts
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MergeAccountsDto'
+      responses:
+        '200':
+          description: Accounts merged successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MergeAccountsResponseDto'
+        '400':
+          description: Cannot merge - overlapping identities or invalid request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - Requires sysadmin role
+        '404':
+          description: Source or destination user not found
+      security:
+        - bearer: []
+      summary: Merge user accounts
+      tags:
+        - admin
   /health:
     get:
-      description: Basic health check endpoint. Returns OK if the service is running.
-        Used for liveness probes in container orchestration.
+      description: >-
+        Basic health check endpoint. Returns OK if the service is running. Used
+        for liveness probes in container orchestration.
       operationId: HealthController_health
       parameters: []
       responses:
-        "200":
+        '200':
           description: Service is healthy
           content:
             application/json:
@@ -428,19 +637,20 @@ paths:
                     example: ok
                   timestamp:
                     type: string
-                    example: 2025-01-01T00:00:00.000Z
+                    example: '2025-01-01T00:00:00.000Z'
       summary: Health check
-      tags: &a8
+      tags:
         - health
   /readiness:
     get:
-      description: Readiness check endpoint that verifies database connectivity.
-        Returns OK if all dependencies are available. Used for readiness probes
-        in container orchestration.
+      description: >-
+        Readiness check endpoint that verifies database connectivity. Returns OK
+        if all dependencies are available. Used for readiness probes in
+        container orchestration.
       operationId: HealthController_readiness
       parameters: []
       responses:
-        "200":
+        '200':
           description: Service is ready
           content:
             application/json:
@@ -464,14 +674,16 @@ paths:
                           - fail
                   timestamp:
                     type: string
-                    example: 2025-01-01T00:00:00.000Z
+                    example: '2025-01-01T00:00:00.000Z'
       summary: Readiness check
-      tags: *a8
+      tags:
+        - health
 info:
   title: Todo App API
-  description: REST API for Todo Application with authentication and role-based
-    access control
-  version: "1.0"
+  description: >-
+    REST API for Todo Application with authentication and role-based access
+    control
+  version: '1.0'
   contact: {}
 tags: []
 servers: []
@@ -558,7 +770,7 @@ components:
         user:
           description: Registered user information
           allOf:
-            - $ref: "#/components/schemas/RegisteredUserInfo"
+            - $ref: '#/components/schemas/RegisteredUserInfo'
       required:
         - user
     LoginDto:
@@ -584,7 +796,7 @@ components:
           example: uuid-123
         email:
           type: string
-          description: User email
+          description: User email (deprecated, use specific identity emails)
           example: user@example.com
         fullName:
           type: string
@@ -602,6 +814,18 @@ components:
           type: boolean
           description: Email verification status
           example: true
+        localUsername:
+          type: string
+          description: Local username if local identity exists
+          example: john.doe
+        googleEmail:
+          type: string
+          description: Google email if Google identity is linked
+          example: user@gmail.com
+        msEmail:
+          type: string
+          description: Microsoft email if Microsoft identity is linked
+          example: user@outlook.com
       required:
         - id
         - email
@@ -622,7 +846,7 @@ components:
         user:
           description: User information
           allOf:
-            - $ref: "#/components/schemas/UserInfo"
+            - $ref: '#/components/schemas/UserInfo'
       required:
         - accessToken
         - refreshToken
@@ -680,7 +904,7 @@ components:
           format: date-time
           type: string
           description: Due date for the todo item
-          example: 2025-12-31T23:59:59.000Z
+          example: '2025-12-31T23:59:59.000Z'
         priority:
           type: string
           description: Priority level of the todo item
@@ -702,7 +926,7 @@ components:
           format: date-time
           type: string
           description: Due date for the todo item
-          example: 2025-12-31T23:59:59.000Z
+          example: '2025-12-31T23:59:59.000Z'
         priority:
           type: string
           description: Priority level of the todo item
@@ -720,7 +944,7 @@ components:
           example: uuid-123
         email:
           type: string
-          description: User email address
+          description: User email address (primary)
           example: user@example.com
         fullName:
           type: string
@@ -733,24 +957,42 @@ components:
         emailVerifiedAt:
           type: object
           description: Email verification timestamp
-          example: 2025-01-01T00:00:00.000Z
+          example: '2025-01-01T00:00:00.000Z'
+          nullable: true
+        localUsername:
+          type: object
+          description: Local username (could be email or username)
+          example: john.doe
+          nullable: true
+        googleEmail:
+          type: object
+          description: Google account email
+          example: user@gmail.com
+          nullable: true
+        msEmail:
+          type: object
+          description: Microsoft account email
+          example: user@outlook.com
           nullable: true
         createdAt:
           format: date-time
           type: string
           description: User creation timestamp
-          example: 2025-01-01T00:00:00.000Z
+          example: '2025-01-01T00:00:00.000Z'
         updatedAt:
           format: date-time
           type: string
           description: User last update timestamp
-          example: 2025-01-01T00:00:00.000Z
+          example: '2025-01-01T00:00:00.000Z'
       required:
         - id
         - email
         - fullName
         - role
         - emailVerifiedAt
+        - localUsername
+        - googleEmail
+        - msEmail
         - createdAt
         - updatedAt
     UpdateUserDto:
@@ -783,4 +1025,34 @@ components:
         emailVerifiedAt:
           type: object
           description: Email verification timestamp (ISO 8601 format, or null to unverify)
-          example: 2025-01-01T00:00:00.000Z
+          example: '2025-01-01T00:00:00.000Z'
+    MergeAccountsDto:
+      type: object
+      properties:
+        sourceUserId:
+          type: string
+          description: Source user ID (will be deleted after merge)
+          example: 550e8400-e29b-41d4-a716-446655440000
+        destinationUserId:
+          type: string
+          description: Destination user ID (will receive merged identities)
+          example: 660e8400-e29b-41d4-a716-446655440111
+      required:
+        - sourceUserId
+        - destinationUserId
+    MergeAccountsResponseDto:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Success message
+        destinationUserId:
+          type: string
+          description: Destination user ID
+        mergedIdentities:
+          type: object
+          description: Identities merged from source
+      required:
+        - message
+        - destinationUserId
+        - mergedIdentities

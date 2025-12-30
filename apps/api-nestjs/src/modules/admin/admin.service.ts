@@ -11,8 +11,10 @@ import * as schema from '@todo-app/database';
 import { users } from '@todo-app/database';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import { PasswordService } from '../../common/services/password.service';
+import { AuditService } from '../audit/audit.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { MergeAccountsResponseDto } from './dto/merge-accounts.dto';
 
 @Injectable()
 export class AdminService {
@@ -20,6 +22,7 @@ export class AdminService {
     @Inject(DATABASE_CONNECTION)
     private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly passwordService: PasswordService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -156,6 +159,137 @@ export class AdminService {
   }
 
   /**
+   * Merge source user account into destination user account
+   * Source account will be deleted after merge
+   * Fails if there are overlapping identities
+   */
+  async mergeAccounts(
+    sourceUserId: string,
+    destinationUserId: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<MergeAccountsResponseDto> {
+    // Validate that source and destination are different
+    if (sourceUserId === destinationUserId) {
+      throw new BadRequestException('Source and destination users must be different');
+    }
+
+    // Fetch both users
+    const sourceUser = await this.db.query.users.findFirst({
+      where: eq(users.id, sourceUserId),
+    });
+
+    const destinationUser = await this.db.query.users.findFirst({
+      where: eq(users.id, destinationUserId),
+    });
+
+    if (!sourceUser) {
+      throw new NotFoundException(`Source user not found: ${sourceUserId}`);
+    }
+
+    if (!destinationUser) {
+      throw new NotFoundException(`Destination user not found: ${destinationUserId}`);
+    }
+
+    // Check for overlapping identities
+    const conflicts: string[] = [];
+
+    // Check local identity overlap
+    const sourceHasLocal = sourceUser.localEnabled && sourceUser.localUsername;
+    const destHasLocal = destinationUser.localEnabled && destinationUser.localUsername;
+    if (sourceHasLocal && destHasLocal) {
+      conflicts.push('local');
+    }
+
+    // Check Google identity overlap
+    const sourceHasGoogle = !!sourceUser.googleSub;
+    const destHasGoogle = !!destinationUser.googleSub;
+    if (sourceHasGoogle && destHasGoogle) {
+      conflicts.push('google');
+    }
+
+    // Check Microsoft identity overlap
+    const sourceHasMicrosoft = sourceUser.msOid && sourceUser.msTid;
+    const destHasMicrosoft = destinationUser.msOid && destinationUser.msTid;
+    if (sourceHasMicrosoft && destHasMicrosoft) {
+      conflicts.push('microsoft');
+    }
+
+    // If there are overlapping identities, fail the merge
+    if (conflicts.length > 0) {
+      throw new ConflictException(
+        `Cannot merge accounts - overlapping identities: ${conflicts.join(', ')}. ` +
+        `Both users have the following identity types linked.`
+      );
+    }
+
+    // Prepare merge data - only update fields from source if destination doesn't have them
+    const mergeData: any = {
+      updatedAt: new Date(),
+    };
+
+    const mergedIdentities: { local?: boolean; google?: boolean; microsoft?: boolean } = {};
+
+    // Merge local identity
+    if (sourceHasLocal && !destHasLocal) {
+      mergeData.localEnabled = sourceUser.localEnabled;
+      mergeData.localUsername = sourceUser.localUsername;
+      mergeData.localPasswordHash = sourceUser.localPasswordHash;
+      mergedIdentities.local = true;
+    }
+
+    // Merge Google identity
+    if (sourceHasGoogle && !destHasGoogle) {
+      mergeData.googleSub = sourceUser.googleSub;
+      mergeData.googleEmail = sourceUser.googleEmail;
+      mergedIdentities.google = true;
+    }
+
+    // Merge Microsoft identity
+    if (sourceHasMicrosoft && !destHasMicrosoft) {
+      mergeData.msOid = sourceUser.msOid;
+      mergeData.msTid = sourceUser.msTid;
+      mergeData.msEmail = sourceUser.msEmail;
+      mergedIdentities.microsoft = true;
+    }
+
+    // If destination email is not verified but source is, update verification
+    if (!destinationUser.emailVerifiedAt && sourceUser.emailVerifiedAt) {
+      mergeData.emailVerifiedAt = sourceUser.emailVerifiedAt;
+    }
+
+    // Perform the merge - update destination user with source identities
+    await this.db
+      .update(users)
+      .set(mergeData)
+      .where(eq(users.id, destinationUserId));
+
+    // Delete the source user
+    await this.db.delete(users).where(eq(users.id, sourceUserId));
+
+    // Log the merge operation
+    await this.auditService.logAuth(
+      'ACCOUNTS_MERGED',
+      destinationUserId,
+      {
+        sourceUserId,
+        destinationUserId,
+        mergedIdentities,
+        sourceUserEmail: sourceUser.localUsername || sourceUser.googleEmail || sourceUser.msEmail,
+        destinationUserEmail: destinationUser.localUsername || destinationUser.googleEmail || destinationUser.msEmail,
+      },
+      ipAddress,
+      userAgent,
+    );
+
+    return {
+      message: 'Accounts merged successfully',
+      destinationUserId,
+      mergedIdentities,
+    };
+  }
+
+  /**
    * Remove sensitive fields from user object
    */
   private sanitizeUser(user: typeof users.$inferSelect): UserResponseDto {
@@ -166,6 +300,9 @@ export class AdminService {
       fullName: user.fullName,
       role: user.role,
       emailVerifiedAt: user.emailVerifiedAt,
+      localUsername: user.localUsername,
+      googleEmail: user.googleEmail,
+      msEmail: user.msEmail,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

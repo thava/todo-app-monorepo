@@ -2,7 +2,7 @@
 
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 
 from fastapi import HTTPException, status
@@ -34,22 +34,26 @@ class AuthService:
         session: Session,
         password_service: PasswordService | None = None,
         jwt_service: JWTService | None = None,
+        audit_service: "AuditService | None" = None,
     ):
         """Initialize auth service."""
+        from app.services.audit import AuditService
+
         self.session = session
         self.password_service = password_service or PasswordService()
         self.jwt_service = jwt_service or JWTService()
+        self.audit_service = audit_service or AuditService(session)
 
     def register(
         self, register_dto: RegisterDto, user_agent: str | None = None, ip_address: str | None = None
     ) -> RegisterResponseDto:
         """Register a new user."""
-        # Normalize email
-        normalized_email = register_dto.email.lower().strip()
+        # Normalize username (will be used as local username)
+        normalized_username = register_dto.email.lower().strip()
 
         # Validate password strength
         validation = self.password_service.validate_password_strength(
-            register_dto.password, normalized_email
+            register_dto.password, normalized_username
         )
 
         if not validation["isValid"]:
@@ -61,14 +65,14 @@ class AuthService:
                 },
             )
 
-        # Check if user already exists
-        statement = select(User).where(User.email == normalized_email)
+        # Check if user already exists with this local username
+        statement = select(User).where(User.local_username == normalized_username)
         existing_user = self.session.exec(statement).first()
 
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="User with this email already exists",
+                detail="User with this username already exists",
             )
 
         # Hash password
@@ -77,18 +81,32 @@ class AuthService:
         # Create user with snake_case fields
         new_user = User(
             id=uuid.uuid4(),
-            email=normalized_email,
+            local_username=normalized_username,
             full_name=register_dto.full_name.strip(),
-            password_hash_primary=password_hash,
+            local_password_hash=password_hash,
+            local_enabled=True,
             role=register_dto.role,
-            email_verified_at=datetime.now(timezone.utc) if register_dto.autoverify else None,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            email_verified_at=datetime.now(UTC) if register_dto.autoverify else None,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
 
         self.session.add(new_user)
         self.session.commit()
         self.session.refresh(new_user)
+
+        # Log registration
+        self.audit_service.log_auth(
+            "REGISTER",
+            new_user.id,
+            {
+                "local_username": new_user.local_username,
+                "role": new_user.role.value,
+                "autoverified": register_dto.autoverify,
+            },
+            ip_address,
+            user_agent,
+        )
 
         # TODO: Send verification email if not autoverified
 
@@ -96,7 +114,7 @@ class AuthService:
         return RegisterResponseDto(
             user=RegisteredUserInfo(
                 id=new_user.id,
-                email=new_user.email,
+                email=new_user.email or "",  # Uses computed property
                 full_name=new_user.full_name,
                 role=new_user.role.value,
                 email_verified=register_dto.autoverify,
@@ -107,25 +125,66 @@ class AuthService:
         self, login_dto: LoginDto, user_agent: str | None = None, ip_address: str | None = None
     ) -> AuthResponseDto:
         """Login user and return tokens."""
-        # Normalize email
-        normalized_email = login_dto.email.lower().strip()
+        # Normalize username
+        normalized_username = login_dto.email.lower().strip()
 
-        # Find user
-        statement = select(User).where(User.email == normalized_email)
+        # Find user by local username
+        statement = select(User).where(User.local_username == normalized_username)
         user = self.session.exec(statement).first()
 
         if not user:
+            self.audit_service.log_auth(
+                "LOGIN_FAILURE",
+                None,
+                {"local_username": normalized_username, "reason": "user_not_found"},
+                ip_address,
+                user_agent,
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials",
             )
 
+        # Check if local auth is enabled
+        if not user.local_enabled:
+            self.audit_service.log_auth(
+                "LOGIN_FAILURE",
+                user.id,
+                {"local_username": user.local_username, "reason": "local_auth_disabled"},
+                ip_address,
+                user_agent,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Local authentication is disabled for this user",
+            )
+
         # Verify password
+        if not user.local_password_hash:
+            self.audit_service.log_auth(
+                "LOGIN_FAILURE",
+                user.id,
+                {"local_username": user.local_username, "reason": "no_password_set"},
+                ip_address,
+                user_agent,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials",
+            )
+
         is_valid = self.password_service.verify_password(
-            user.password_hash_primary, login_dto.password
+            user.local_password_hash, login_dto.password
         )
 
         if not is_valid:
+            self.audit_service.log_auth(
+                "LOGIN_FAILURE",
+                user.id,
+                {"local_username": user.local_username, "reason": "invalid_password"},
+                ip_address,
+                user_agent,
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials",
@@ -133,10 +192,26 @@ class AuthService:
 
         # Check if email is verified
         if not user.email_verified_at:
+            self.audit_service.log_auth(
+                "LOGIN_FAILURE",
+                user.id,
+                {"local_username": user.local_username, "reason": "email_not_verified"},
+                ip_address,
+                user_agent,
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Please verify your email address before logging in",
             )
+
+        # Log successful login
+        self.audit_service.log_auth(
+            "LOGIN_SUCCESS",
+            user.id,
+            {"local_username": user.local_username},
+            ip_address,
+            user_agent,
+        )
 
         # Generate tokens and create session
         return self._create_auth_response(user, user_agent, ip_address)
@@ -177,8 +252,8 @@ class AuthService:
             )
 
         # Check if session is expired
-        expires_at = session_obj.expires_at if session_obj.expires_at.tzinfo else session_obj.expires_at.replace(tzinfo=timezone.utc)
-        if datetime.now(timezone.utc) > expires_at:
+        expires_at = session_obj.expires_at if session_obj.expires_at.tzinfo else session_obj.expires_at.replace(tzinfo=UTC)
+        if datetime.now(UTC) > expires_at:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Refresh token has expired",
@@ -196,15 +271,32 @@ class AuthService:
             )
 
         # Revoke old refresh token (rotation)
-        session_obj.revoked_at = datetime.now(timezone.utc)
+        session_obj.revoked_at = datetime.now(UTC)
         self.session.add(session_obj)
         self.session.commit()
+
+        # Log token rotation
+        self.audit_service.log_auth(
+            "REFRESH_TOKEN_ROTATED",
+            user.id,
+            {"session_id": str(session_obj.id)},
+            ip_address,
+            user_agent,
+        )
 
         # Generate new tokens and create new session
         return self._create_auth_response(user, user_agent, ip_address)
 
     def logout(self, refresh_token: str) -> None:
         """Logout by revoking refresh token."""
+        # Extract user_id from token for audit logging
+        user_id: uuid.UUID | None = None
+        try:
+            payload = self.jwt_service.verify_refresh_token(refresh_token)
+            user_id = uuid.UUID(payload.get("sub"))
+        except Exception:
+            pass  # Token might be invalid, but we still try to revoke it
+
         token_hash = self._hash_token(refresh_token)
 
         statement = select(RefreshTokenSession).where(
@@ -213,9 +305,18 @@ class AuthService:
         session_obj = self.session.exec(statement).first()
 
         if session_obj:
-            session_obj.revoked_at = datetime.now(timezone.utc)
+            session_obj.revoked_at = datetime.now(UTC)
             self.session.add(session_obj)
             self.session.commit()
+
+            # Log logout (no IP/user_agent available in current signature)
+            self.audit_service.log_auth(
+                "LOGOUT",
+                user_id or session_obj.user_id,
+                {},
+                None,
+                None,
+            )
 
     def verify_email(self, token: str) -> dict[str, str | bool]:
         """Verify email with token."""
@@ -234,8 +335,8 @@ class AuthService:
             )
 
         # Check if expired
-        expires_at = verification_token.expires_at if verification_token.expires_at.tzinfo else verification_token.expires_at.replace(tzinfo=timezone.utc)
-        if datetime.now(timezone.utc) > expires_at:
+        expires_at = verification_token.expires_at if verification_token.expires_at.tzinfo else verification_token.expires_at.replace(tzinfo=UTC)
+        if datetime.now(UTC) > expires_at:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Verification token has expired",
@@ -249,7 +350,7 @@ class AuthService:
             }
 
         # Mark token as used
-        verification_token.verified_at = datetime.now(timezone.utc)
+        verification_token.verified_at = datetime.now(UTC)
         self.session.add(verification_token)
 
         # Mark user email as verified
@@ -257,7 +358,7 @@ class AuthService:
         user = self.session.exec(statement).first()
 
         if user:
-            user.email_verified_at = datetime.now(timezone.utc)
+            user.email_verified_at = datetime.now(UTC)
             self.session.add(user)
 
         self.session.commit()
@@ -297,14 +398,14 @@ class AuthService:
 
     def request_password_reset(self, email: str) -> None:
         """Request password reset."""
-        normalized_email = email.lower().strip()
+        normalized_username = email.lower().strip()
 
-        # Find user
-        statement = select(User).where(User.email == normalized_email)
+        # Find user by local username
+        statement = select(User).where(User.local_username == normalized_username)
         user = self.session.exec(statement).first()
 
         # Always return success (security best practice)
-        if not user:
+        if not user or not user.local_enabled:
             return
 
         # Generate reset token
@@ -312,7 +413,7 @@ class AuthService:
         token_hash = self._hash_token(token)
 
         # Set expiry (1 hour)
-        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         # Delete old reset tokens
         statement = select(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
@@ -325,7 +426,7 @@ class AuthService:
             user_id=user.id,
             token_hash=token_hash,
             expires_at=expires_at,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
         self.session.add(reset_token)
@@ -351,8 +452,8 @@ class AuthService:
             )
 
         # Check if expired
-        expires_at = reset_token.expires_at if reset_token.expires_at.tzinfo else reset_token.expires_at.replace(tzinfo=timezone.utc)
-        if datetime.now(timezone.utc) > expires_at:
+        expires_at = reset_token.expires_at if reset_token.expires_at.tzinfo else reset_token.expires_at.replace(tzinfo=UTC)
+        if datetime.now(UTC) > expires_at:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Reset token has expired",
@@ -369,7 +470,8 @@ class AuthService:
             )
 
         # Validate new password
-        validation = self.password_service.validate_password_strength(new_password, user.email)
+        user_email = user.email or ""  # Uses computed property
+        validation = self.password_service.validate_password_strength(new_password, user_email)
 
         if not validation["isValid"]:
             raise HTTPException(
@@ -384,18 +486,18 @@ class AuthService:
         password_hash = self.password_service.hash_password(new_password)
 
         # Update user password
-        user.password_hash_primary = password_hash
+        user.local_password_hash = password_hash
         self.session.add(user)
 
         # Mark token as used
-        reset_token.used_at = datetime.now(timezone.utc)
+        reset_token.used_at = datetime.now(UTC)
         self.session.add(reset_token)
 
         # Revoke all refresh token sessions
         statement = select(RefreshTokenSession).where(RefreshTokenSession.user_id == user.id)
         sessions = self.session.exec(statement).all()
         for session_obj in sessions:
-            session_obj.revoked_at = datetime.now(timezone.utc)
+            session_obj.revoked_at = datetime.now(UTC)
             self.session.add(session_obj)
 
         self.session.commit()
@@ -407,9 +509,10 @@ class AuthService:
     ) -> AuthResponseDto:
         """Create authentication response with tokens."""
         # Generate access token
-        access_token = self.jwt_service.generate_access_token(user.id, user.email, user.role)
+        user_email = user.email or ""  # Uses computed property
+        access_token = self.jwt_service.generate_access_token(user.id, user_email, user.role)
 
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         session_obj = RefreshTokenSession(
             id=uuid.uuid4(),
@@ -418,7 +521,7 @@ class AuthService:
             user_agent=user_agent,
             ip_address=ip_address,
             expires_at=expires_at,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
         self.session.add(session_obj)
@@ -437,7 +540,7 @@ class AuthService:
             refresh_token=refresh_token,
             user=UserInfo(
                 id=user.id,
-                email=user.email,
+                email=user_email,  # Already resolved above
                 full_name=user.full_name,
                 role=user.role.value,
                 email_verified=bool(user.email_verified_at),

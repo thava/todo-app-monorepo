@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Delete,
   Param,
@@ -8,11 +9,15 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Req,
+  Ip,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { AdminService } from './admin.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { MergeAccountsDto, MergeAccountsResponseDto } from './dto/merge-accounts.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -83,5 +88,31 @@ export class AdminController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async deleteUser(@Param('id') id: string): Promise<void> {
     return this.adminService.deleteUser(id);
+  }
+
+  @Post('merge-users')
+  @Roles('sysadmin')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Merge user accounts',
+    description: 'Merges source user account into destination user account. Source account will be deleted after merge. Fails if there are overlapping identities. Requires sysadmin role.'
+  })
+  @ApiResponse({ status: 200, description: 'Accounts merged successfully', type: MergeAccountsResponseDto })
+  @ApiResponse({ status: 400, description: 'Cannot merge - overlapping identities or invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Requires sysadmin role' })
+  @ApiResponse({ status: 404, description: 'Source or destination user not found' })
+  async mergeAccounts(
+    @Body() mergeAccountsDto: MergeAccountsDto,
+    @Req() req: Request,
+    @Ip() ip: string,
+  ): Promise<MergeAccountsResponseDto> {
+    const userAgent = req.headers['user-agent'];
+    return this.adminService.mergeAccounts(
+      mergeAccountsDto.sourceUserId,
+      mergeAccountsDto.destinationUserId,
+      ip,
+      userAgent,
+    );
   }
 }

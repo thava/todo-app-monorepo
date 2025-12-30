@@ -1,16 +1,17 @@
 """Admin routes for user management."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, select
 
 from app.api.deps.auth import require_role
 from app.core.db import get_db
 from app.models.user import RoleEnum, User
 from app.schemas.user import UpdateUserDto, UserResponseDto
+from app.services.audit import AuditService
 from app.services.password import PasswordService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -20,7 +21,7 @@ def _user_to_response(user: User) -> UserResponseDto:
     """Convert User model to response DTO."""
     return UserResponseDto(
         id=user.id,
-        email=user.email,
+        email=user.email or "",
         full_name=user.full_name,
         role=user.role.value,
         email_verified_at=user.email_verified_at,
@@ -47,7 +48,8 @@ def get_all_users(
 @router.get("/users/{id}", response_model=UserResponseDto)
 def get_user_by_id(
     id: uuid.UUID,
-    _: Annotated[User, Depends(require_role(RoleEnum.ADMIN, RoleEnum.SYSADMIN))],
+    request: Request,
+    current_user: Annotated[User, Depends(require_role(RoleEnum.ADMIN, RoleEnum.SYSADMIN))],
     session: Annotated[Session, Depends(get_db)],
 ) -> UserResponseDto:
     """
@@ -64,6 +66,20 @@ def get_user_by_id(
             detail="User not found",
         )
 
+    # Log admin action
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host if request.client else None
+    audit_service = AuditService(session)
+    audit_service.log_admin(
+        "ADMIN_USER_VIEWED",
+        current_user.id,
+        "user",
+        user.id,
+        {"viewed_user_email": user.email or ""},
+        ip_address,
+        user_agent,
+    )
+
     return _user_to_response(user)
 
 
@@ -71,6 +87,7 @@ def get_user_by_id(
 def update_user(
     id: uuid.UUID,
     update_dto: UpdateUserDto,
+    request: Request,
     current_user: Annotated[User, Depends(require_role(RoleEnum.ADMIN, RoleEnum.SYSADMIN))],
     session: Annotated[Session, Depends(get_db)],
 ) -> UserResponseDto:
@@ -99,20 +116,21 @@ def update_user(
 
     # Update fields
     if update_dto.email is not None:
-        # Check if email is already taken
-        normalized_email = update_dto.email.lower().strip()
-        statement = select(User).where(User.email == normalized_email, User.id != id)
+        # Check if local username is already taken
+        normalized_username = update_dto.email.lower().strip()
+        statement = select(User).where(User.local_username == normalized_username, User.id != id)
         existing_user = session.exec(statement).first()
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already in use",
+                detail="Username already in use",
             )
-        user.email = normalized_email
+        user.local_username = normalized_username
 
     if update_dto.password is not None:
         password_service = PasswordService()
-        validation = password_service.validate_password_strength(update_dto.password, user.email)
+        user_email = user.email or ""  # Uses computed property
+        validation = password_service.validate_password_strength(update_dto.password, user_email)
         if not validation["isValid"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -121,7 +139,7 @@ def update_user(
                     "errors": validation["errors"],
                 },
             )
-        user.password_hash_primary = password_service.hash_password(update_dto.password)
+        user.local_password_hash = password_service.hash_password(update_dto.password)
 
     if update_dto.full_name is not None:
         user.full_name = update_dto.full_name
@@ -148,7 +166,7 @@ def update_user(
         if isinstance(update_dto.email_verified_at, str):
             # Handle "now" as a special value
             if update_dto.email_verified_at.lower() == "now":
-                user.email_verified_at = datetime.now(timezone.utc)
+                user.email_verified_at = datetime.now(UTC)
             else:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -158,11 +176,25 @@ def update_user(
             # Can be datetime or None
             user.email_verified_at = update_dto.email_verified_at
 
-    user.updated_at = datetime.now(timezone.utc)
+    user.updated_at = datetime.now(UTC)
 
     session.add(user)
     session.commit()
     session.refresh(user)
+
+    # Log admin action
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host if request.client else None
+    audit_service = AuditService(session)
+    audit_service.log_admin(
+        "ADMIN_USER_UPDATED",
+        current_user.id,
+        "user",
+        user.id,
+        {"updated_fields": list(update_dto.model_fields_set)},
+        ip_address,
+        user_agent,
+    )
 
     return _user_to_response(user)
 
@@ -170,6 +202,7 @@ def update_user(
 @router.delete("/users/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
     id: uuid.UUID,
+    request: Request,
     current_user: Annotated[User, Depends(require_role(RoleEnum.ADMIN, RoleEnum.SYSADMIN))],
     session: Annotated[Session, Depends(get_db)],
 ) -> None:
@@ -201,6 +234,20 @@ def delete_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot delete your own account",
         )
+
+    # Log admin action before deletion
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host if request.client else None
+    audit_service = AuditService(session)
+    audit_service.log_admin(
+        "ADMIN_USER_DELETED",
+        current_user.id,
+        "user",
+        user.id,
+        {"deleted_user_email": user.email or ""},
+        ip_address,
+        user_agent,
+    )
 
     session.delete(user)
     session.commit()

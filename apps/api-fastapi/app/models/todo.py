@@ -1,10 +1,11 @@
 """Todo-related database models."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
-from sqlmodel import Column, Enum as SQLEnum, Field, SQLModel  # type: ignore[reportUnknownVariableType]
+from sqlmodel import Column, Field, SQLModel  # type: ignore[reportUnknownVariableType]
+from sqlmodel import Enum as SQLEnum
 
 
 class PriorityEnum(str, Enum):
@@ -41,5 +42,5 @@ class Todo(TodoBase, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     owner_id: uuid.UUID = Field(foreign_key="users.id")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

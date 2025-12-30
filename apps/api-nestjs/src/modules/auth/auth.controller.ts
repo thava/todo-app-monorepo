@@ -129,9 +129,9 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Verification email sent' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async resendVerification(
-    @GetCurrentUser() user: AccessTokenPayload,
+    @GetCurrentUser('userId') userId: string,
   ): Promise<{ message: string }> {
-    await this.authService.resendVerificationEmail(user.sub);
+    await this.authService.resendVerificationEmail(userId);
     return { message: 'Verification email sent' };
   }
 

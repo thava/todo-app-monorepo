@@ -4,10 +4,11 @@ import {
   UnauthorizedException,
   BadRequestException,
   Inject,
+  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { eq, and, lt, isNull } from 'drizzle-orm';
+import { eq, and, lt, isNull, or } from 'drizzle-orm';
 import { createHash, randomBytes } from 'crypto';
 import * as schema from '@todo-app/database';
 import {
@@ -357,6 +358,9 @@ export class AuthService {
         fullName: user.fullName,
         role: user.role,
         emailVerified: !!user.emailVerifiedAt,
+        localUsername: user.localUsername || undefined,
+        googleEmail: user.googleEmail || undefined,
+        msEmail: user.msEmail || undefined,
       },
     };
   }
@@ -585,5 +589,358 @@ export class AuthService {
 
     // Send confirmation email
     await this.emailService.sendPasswordChangedEmail(userEmail, user.fullName);
+  }
+
+  /**
+   * Login or create user via Google OAuth
+   * Primary identity: google_sub (globally unique)
+   */
+  async loginWithGoogle(
+    googleSub: string,
+    googleEmail: string,
+    fullName: string,
+    userAgent?: string,
+    ipAddress?: string,
+  ): Promise<AuthResponseDto> {
+    // Look up user ONLY by google_sub (primary identity)
+    let user = await this.db.query.users.findFirst({
+      where: eq(users.googleSub, googleSub),
+    });
+
+    if (user) {
+      // User exists - check if email has changed and update if needed
+      if (user.googleEmail !== googleEmail) {
+        const [updatedUser] = await this.db
+          .update(users)
+          .set({
+            googleEmail,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, user.id))
+          .returning();
+
+        user = updatedUser;
+
+        await this.auditService.logAuth(
+          'GOOGLE_EMAIL_UPDATED',
+          user.id,
+          { oldEmail: user.googleEmail, newEmail: googleEmail },
+          ipAddress,
+          userAgent,
+        );
+      }
+
+      // Log successful login
+      await this.auditService.logAuth(
+        'GOOGLE_LOGIN_SUCCESS',
+        user.id,
+        { googleEmail },
+        ipAddress,
+        userAgent,
+      );
+    } else {
+      // No existing user with this google_sub - create new user
+      const [newUser] = await this.db
+        .insert(users)
+        .values({
+          googleSub,
+          googleEmail,
+          fullName,
+          role: 'guest',
+          emailVerifiedAt: new Date(),
+        })
+        .returning();
+
+      user = newUser;
+
+      await this.auditService.logAuth(
+        'GOOGLE_REGISTER',
+        user.id,
+        { googleEmail },
+        ipAddress,
+        userAgent,
+      );
+    }
+
+    return this.createAuthResponse(user, userAgent, ipAddress);
+  }
+
+  /**
+   * Login or create user via Microsoft OAuth
+   * Primary identity: (ms_tid, ms_oid) tuple
+   */
+  async loginWithMicrosoft(
+    msOid: string,
+    msTid: string,
+    msEmail: string,
+    fullName: string,
+    userAgent?: string,
+    ipAddress?: string,
+  ): Promise<AuthResponseDto> {
+    // Look up user ONLY by (ms_tid, ms_oid) tuple (primary identity)
+    let user = await this.db.query.users.findFirst({
+      where: and(
+        eq(users.msOid, msOid),
+        eq(users.msTid, msTid),
+      ),
+    });
+
+    if (user) {
+      // User exists - check if email has changed and update if needed
+      if (user.msEmail !== msEmail) {
+        const [updatedUser] = await this.db
+          .update(users)
+          .set({
+            msEmail,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, user.id))
+          .returning();
+
+        user = updatedUser;
+
+        await this.auditService.logAuth(
+          'MICROSOFT_EMAIL_UPDATED',
+          user.id,
+          { oldEmail: user.msEmail, newEmail: msEmail },
+          ipAddress,
+          userAgent,
+        );
+      }
+
+      // Log successful login
+      await this.auditService.logAuth(
+        'MICROSOFT_LOGIN_SUCCESS',
+        user.id,
+        { msEmail },
+        ipAddress,
+        userAgent,
+      );
+    } else {
+      // No existing user with this (ms_tid, ms_oid) - create new user
+      const [newUser] = await this.db
+        .insert(users)
+        .values({
+          msOid,
+          msTid,
+          msEmail,
+          fullName,
+          role: 'guest',
+          emailVerifiedAt: new Date(),
+        })
+        .returning();
+
+      user = newUser;
+
+      await this.auditService.logAuth(
+        'MICROSOFT_REGISTER',
+        user.id,
+        { msEmail },
+        ipAddress,
+        userAgent,
+      );
+    }
+
+    return this.createAuthResponse(user, userAgent, ipAddress);
+  }
+
+  /**
+   * Link Google identity to an existing user
+   */
+  async linkGoogleIdentity(
+    userId: string,
+    googleSub: string,
+    googleEmail: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<void> {
+    // Verify user exists
+    const user = await this.db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if Google identity is already linked to another user
+    const existingGoogleUser = await this.db.query.users.findFirst({
+      where: eq(users.googleSub, googleSub),
+    });
+
+    if (existingGoogleUser && existingGoogleUser.id !== userId) {
+      throw new ConflictException('This Google account is already linked to another user');
+    }
+
+    // Link Google identity
+    await this.db
+      .update(users)
+      .set({
+        googleSub,
+        googleEmail,
+        emailVerifiedAt: user.emailVerifiedAt || new Date(),
+      })
+      .where(eq(users.id, userId));
+
+    await this.auditService.logAuth(
+      'GOOGLE_LINKED',
+      userId,
+      { googleEmail },
+      ipAddress,
+      userAgent,
+    );
+  }
+
+  /**
+   * Link Microsoft identity to an existing user
+   */
+  async linkMicrosoftIdentity(
+    userId: string,
+    msOid: string,
+    msTid: string,
+    msEmail: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<void> {
+    // Verify user exists
+    const user = await this.db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if Microsoft identity is already linked to another user
+    const existingMsUser = await this.db.query.users.findFirst({
+      where: and(
+        eq(users.msOid, msOid),
+        eq(users.msTid, msTid),
+      ),
+    });
+
+    if (existingMsUser && existingMsUser.id !== userId) {
+      throw new ConflictException('This Microsoft account is already linked to another user');
+    }
+
+    // Link Microsoft identity
+    await this.db
+      .update(users)
+      .set({
+        msOid,
+        msTid,
+        msEmail,
+        emailVerifiedAt: user.emailVerifiedAt || new Date(),
+      })
+      .where(eq(users.id, userId));
+
+    await this.auditService.logAuth(
+      'MICROSOFT_LINKED',
+      userId,
+      { msEmail },
+      ipAddress,
+      userAgent,
+    );
+  }
+
+  /**
+   * Unlink Google identity from a user
+   * Requires at least one other identity to remain
+   */
+  async unlinkGoogleIdentity(
+    userId: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<void> {
+    const user = await this.db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.googleSub) {
+      throw new NotFoundException('Google account is not linked');
+    }
+
+    // Check if user has at least one other identity
+    const hasLocalIdentity = user.localEnabled && user.localUsername;
+    const hasMicrosoftIdentity = user.msOid && user.msTid;
+
+    if (!hasLocalIdentity && !hasMicrosoftIdentity) {
+      throw new BadRequestException(
+        'Cannot unlink Google account - user must have at least one identity (local or Microsoft)'
+      );
+    }
+
+    // Unlink Google identity
+    await this.db
+      .update(users)
+      .set({
+        googleSub: null,
+        googleEmail: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+
+    await this.auditService.logAuth(
+      'GOOGLE_UNLINKED',
+      userId,
+      { googleEmail: user.googleEmail },
+      ipAddress,
+      userAgent,
+    );
+  }
+
+  /**
+   * Unlink Microsoft identity from a user
+   * Requires at least one other identity to remain
+   */
+  async unlinkMicrosoftIdentity(
+    userId: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<void> {
+    const user = await this.db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.msOid || !user.msTid) {
+      throw new NotFoundException('Microsoft account is not linked');
+    }
+
+    // Check if user has at least one other identity
+    const hasLocalIdentity = user.localEnabled && user.localUsername;
+    const hasGoogleIdentity = user.googleSub;
+
+    if (!hasLocalIdentity && !hasGoogleIdentity) {
+      throw new BadRequestException(
+        'Cannot unlink Microsoft account - user must have at least one identity (local or Google)'
+      );
+    }
+
+    // Unlink Microsoft identity
+    await this.db
+      .update(users)
+      .set({
+        msOid: null,
+        msTid: null,
+        msEmail: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+
+    await this.auditService.logAuth(
+      'MICROSOFT_UNLINKED',
+      userId,
+      { msEmail: user.msEmail },
+      ipAddress,
+      userAgent,
+    );
   }
 }

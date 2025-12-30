@@ -13,6 +13,9 @@ export interface User {
   role: 'guest' | 'admin' | 'sysadmin';
   emailVerified: boolean;
   emailVerifiedAt?: string | null;
+  localUsername?: string;
+  googleEmail?: string;
+  msEmail?: string;
 }
 
 class ApiClient {
@@ -80,6 +83,25 @@ class ApiClient {
     return this.request<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
+    });
+  }
+
+  // OAuth endpoints
+  async unlinkGoogle(accessToken: string): Promise<void> {
+    await this.request<void>('/oauth/google/unlink', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async unlinkMicrosoft(accessToken: string): Promise<void> {
+    await this.request<void>('/oauth/microsoft/unlink', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     });
   }
 
@@ -185,6 +207,24 @@ class ApiClient {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+    });
+  }
+
+  async mergeAccounts(accessToken: string, sourceUserId: string, destinationUserId: string) {
+    return this.request<{
+      message: string;
+      destinationUserId: string;
+      mergedIdentities: {
+        local?: boolean;
+        google?: boolean;
+        microsoft?: boolean;
+      };
+    }>('/admin/merge-users', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ sourceUserId, destinationUserId }),
     });
   }
 }

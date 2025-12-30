@@ -45,7 +45,10 @@ export class AuditService {
    * Log authentication events
    */
   async logAuth(
-    action: 'LOGIN_SUCCESS' | 'LOGIN_FAILURE' | 'REGISTER' | 'LOGOUT' | 'REFRESH_TOKEN_USED' | 'REFRESH_TOKEN_ROTATED',
+    action: 'LOGIN_SUCCESS' | 'LOGIN_FAILURE' | 'REGISTER' | 'LOGOUT' | 'REFRESH_TOKEN_USED' | 'REFRESH_TOKEN_ROTATED' |
+           'GOOGLE_LOGIN_SUCCESS' | 'GOOGLE_REGISTER' | 'GOOGLE_LINKED' | 'GOOGLE_EMAIL_UPDATED' | 'GOOGLE_UNLINKED' |
+           'MICROSOFT_LOGIN_SUCCESS' | 'MICROSOFT_REGISTER' | 'MICROSOFT_LINKED' | 'MICROSOFT_EMAIL_UPDATED' | 'MICROSOFT_UNLINKED' |
+           'ACCOUNTS_MERGED',
     userId?: string,
     metadata?: Record<string, unknown>,
     ipAddress?: string,

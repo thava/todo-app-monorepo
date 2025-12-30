@@ -1,6 +1,6 @@
 """Health check routes."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -22,7 +22,7 @@ def health() -> dict[str, str]:
     """
     return {
         "status": "ok",
-        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+        "timestamp": datetime.now(UTC).isoformat() + "Z",
     }
 
 
@@ -52,5 +52,5 @@ def readiness(
         "checks": {
             "database": db_status,
         },
-        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+        "timestamp": datetime.now(UTC).isoformat() + "Z",
     }

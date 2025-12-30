@@ -58,6 +58,9 @@ export class UsersService {
       fullName: user.fullName,
       role: user.role,
       emailVerified: !!user.emailVerifiedAt,
+      localUsername: user.localUsername || undefined,
+      googleEmail: user.googleEmail || undefined,
+      msEmail: user.msEmail || undefined,
     };
   }
 

@@ -2,7 +2,7 @@
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlmodel import Session, select
 
@@ -27,14 +27,14 @@ def create_sysadmin_user(session: Session, password_service: PasswordService) ->
         return
 
     # Create sysadmin1 user
-    email = "sysadmin1@zatvia.com"
+    username = "sysadmin1@zatvia.com"
     password = "Todo####"  # Default demo password
 
-    statement = select(User).where(User.email == email)
+    statement = select(User).where(User.local_username == username)
     existing_user = session.exec(statement).first()
 
     if existing_user:
-        logger.info(f"User {email} already exists")
+        logger.info(f"User {username} already exists")
         return
 
     # Hash password
@@ -42,18 +42,19 @@ def create_sysadmin_user(session: Session, password_service: PasswordService) ->
 
     user = User(
         id=uuid.uuid4(),
-        email=email,
+        local_username=username,
         full_name="System Administrator",
-        password_hash_primary=password_hash,
-        role="sysadmin",
-        email_verified_at=datetime.now(timezone.utc),
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        local_password_hash=password_hash,
+        local_enabled=True,
+        role=RoleEnum.SYSADMIN,
+        email_verified_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
 
     session.add(user)
     session.commit()
-    logger.info(f"Created sysadmin user: {email}")
+    logger.info(f"Created sysadmin user: {username}")
 
 
 def init() -> None:

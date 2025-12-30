@@ -1,6 +1,6 @@
 """User management routes (/me endpoints)."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -27,7 +27,7 @@ def get_profile(
     """
     return UserInfo(
         id=current_user.id,
-        email=current_user.email,
+        email=current_user.email or "",
         full_name=current_user.full_name,
         role=current_user.role.value,
         email_verified=bool(current_user.email_verified_at),
@@ -47,23 +47,23 @@ def update_profile(
     Updates the profile of the authenticated user.
     """
     if update_dto.email is not None:
-        # Check if email is already in use
-        statement = select(User).where(User.email == update_dto.email)
+        # Check if local username is already in use
+        statement = select(User).where(User.local_username == update_dto.email)
         existing_user = session.exec(statement).first()
         if existing_user and existing_user.id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email is already in use",
+                detail="Username is already in use",
             )
 
-        current_user.email = update_dto.email
-        # Reset email verification when email changes
+        current_user.local_username = update_dto.email
+        # Reset email verification when local username changes
         current_user.email_verified_at = None
 
     if update_dto.full_name is not None:
         current_user.full_name = update_dto.full_name
 
-    current_user.updated_at = datetime.now(timezone.utc)
+    current_user.updated_at = datetime.now(UTC)
 
     session.add(current_user)
     session.commit()
@@ -71,7 +71,7 @@ def update_profile(
 
     return UserInfo(
         id=current_user.id,
-        email=current_user.email,
+        email=current_user.email or "",
         full_name=current_user.full_name,
         role=current_user.role.value,
         email_verified=bool(current_user.email_verified_at),
@@ -101,9 +101,16 @@ def change_password(
             detail="User not found",
         )
 
+    # Check if local auth is enabled
+    if not user.local_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot change password for OAuth-only accounts",
+        )
+
     # Verify current password
-    if not password_service.verify_password(
-        user.password_hash_primary,
+    if not user.local_password_hash or not password_service.verify_password(
+        user.local_password_hash,
         change_dto.current_password,
     ):
         raise HTTPException(
@@ -119,8 +126,8 @@ def change_password(
         )
 
     # Hash and update password
-    user.password_hash_primary = password_service.hash_password(change_dto.new_password)
-    user.updated_at = datetime.now(timezone.utc)
+    user.local_password_hash = password_service.hash_password(change_dto.new_password)
+    user.updated_at = datetime.now(UTC)
 
     session.add(user)
     session.commit()

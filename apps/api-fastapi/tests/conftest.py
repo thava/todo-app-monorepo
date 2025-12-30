@@ -2,7 +2,7 @@
 
 import uuid
 from collections.abc import Generator
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -60,13 +60,14 @@ def guest_user_fixture(session: Session, password_service: PasswordService) -> U
     """Create a test guest user."""
     user = User(
         id=uuid.uuid4(),
-        email="testguest@example.com",
+        local_username="testguest@example.com",
         full_name="Test Guest",
-        password_hash_primary=password_service.hash_password("Password123!"),
+        local_password_hash=password_service.hash_password("Password123!"),
+        local_enabled=True,
         role=RoleEnum.GUEST,
-        email_verified_at=datetime.utcnow(),
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        email_verified_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     session.add(user)
     session.commit()
@@ -79,13 +80,14 @@ def admin_user_fixture(session: Session, password_service: PasswordService) -> U
     """Create a test admin user."""
     user = User(
         id=uuid.uuid4(),
-        email="testadmin@example.com",
+        local_username="testadmin@example.com",
         full_name="Test Admin",
-        password_hash_primary=password_service.hash_password("Password123!"),
+        local_password_hash=password_service.hash_password("Password123!"),
+        local_enabled=True,
         role=RoleEnum.ADMIN,
-        email_verified_at=datetime.utcnow(),
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        email_verified_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     session.add(user)
     session.commit()
@@ -98,13 +100,14 @@ def sysadmin_user_fixture(session: Session, password_service: PasswordService) -
     """Create a test sysadmin user."""
     user = User(
         id=uuid.uuid4(),
-        email="testsysadmin@example.com",
+        local_username="testsysadmin@example.com",
         full_name="Test Sysadmin",
-        password_hash_primary=password_service.hash_password("Password123!"),
+        local_password_hash=password_service.hash_password("Password123!"),
+        local_enabled=True,
         role=RoleEnum.SYSADMIN,
-        email_verified_at=datetime.utcnow(),
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        email_verified_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     session.add(user)
     session.commit()
@@ -153,8 +156,8 @@ def sample_todo_fixture(session: Session, guest_user: User) -> Todo:
         owner_id=guest_user.id,
         description="Test todo",
         priority=PriorityEnum.MEDIUM,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     session.add(todo)
     session.commit()
@@ -173,13 +176,14 @@ def create_test_user(
     """Helper to create a test user."""
     user = User(
         id=uuid.uuid4(),
-        email=email,
+        local_username=email,
         full_name=full_name,
-        password_hash_primary=password_service.hash_password("Password123!"),
+        local_password_hash=password_service.hash_password("Password123!"),
+        local_enabled=True,
         role=role,
-        email_verified_at=datetime.utcnow() if verified else None,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        email_verified_at=datetime.now(timezone.utc) if verified else None,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     session.add(user)
     session.commit()
@@ -201,8 +205,8 @@ def create_test_todo(
         description=description,
         priority=priority,
         due_date=due_date,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     session.add(todo)
     session.commit()

@@ -1,8 +1,8 @@
 """Application configuration management."""
 
+import os
 import secrets
 from typing import Annotated, Any, Literal
-import os
 
 from pydantic import (
     AnyUrl,
