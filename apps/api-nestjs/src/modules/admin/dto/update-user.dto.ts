@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, MaxLength, IsOptional, IsIn } from 'class-validator';
+import { IsEmail, IsString, MinLength, MaxLength, IsOptional, IsIn, IsBoolean } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -52,4 +52,12 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   emailVerifiedAt?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Unlink local account (username/password). Requires at least one other OAuth identity (Google or Microsoft) to be linked.',
+    example: true
+  })
+  @IsOptional()
+  @IsBoolean()
+  unlinkLocal?: boolean;
 }

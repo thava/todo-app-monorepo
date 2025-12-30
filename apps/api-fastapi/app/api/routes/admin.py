@@ -10,7 +10,13 @@ from sqlmodel import Session, select
 from app.api.deps.auth import require_role
 from app.core.db import get_db
 from app.models.user import RoleEnum, User
-from app.schemas.user import UpdateUserDto, UserResponseDto
+from app.schemas.user import (
+    MergeAccountsDto,
+    MergeAccountsResponseDto,
+    MergedIdentitiesDto,
+    UpdateUserDto,
+    UserResponseDto,
+)
 from app.services.audit import AuditService
 from app.services.password import PasswordService
 
@@ -25,6 +31,9 @@ def _user_to_response(user: User) -> UserResponseDto:
         full_name=user.full_name,
         role=user.role.value,
         email_verified_at=user.email_verified_at,
+        local_username=user.local_username,
+        google_email=user.google_email,
+        ms_email=user.ms_email,
         created_at=user.created_at,
         updated_at=user.updated_at,
     )
@@ -251,3 +260,135 @@ def delete_user(
 
     session.delete(user)
     session.commit()
+
+
+@router.post("/merge-users", response_model=MergeAccountsResponseDto)
+def merge_users(
+    merge_dto: MergeAccountsDto,
+    request: Request,
+    current_user: Annotated[User, Depends(require_role(RoleEnum.SYSADMIN))],
+    session: Annotated[Session, Depends(get_db)],
+) -> MergeAccountsResponseDto:
+    """
+    Merge user accounts.
+
+    Merges source user account into destination user account.
+    Source account will be deleted after merge.
+    Fails if there are overlapping identities.
+    Requires sysadmin role.
+    """
+    # Validate that source and destination are different
+    if merge_dto.source_user_id == merge_dto.destination_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Source and destination users must be different",
+        )
+
+    # Fetch both users
+    statement = select(User).where(User.id == merge_dto.source_user_id)
+    source_user = session.exec(statement).first()
+
+    statement = select(User).where(User.id == merge_dto.destination_user_id)
+    destination_user = session.exec(statement).first()
+
+    if not source_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Source user not found: {merge_dto.source_user_id}",
+        )
+
+    if not destination_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Destination user not found: {merge_dto.destination_user_id}",
+        )
+
+    # Check for overlapping identities
+    conflicts = []
+
+    # Check local identity overlap
+    source_has_local = source_user.local_enabled and source_user.local_username
+    dest_has_local = destination_user.local_enabled and destination_user.local_username
+    if source_has_local and dest_has_local:
+        conflicts.append("local")
+
+    # Check Google identity overlap
+    source_has_google = bool(source_user.google_sub)
+    dest_has_google = bool(destination_user.google_sub)
+    if source_has_google and dest_has_google:
+        conflicts.append("google")
+
+    # Check Microsoft identity overlap
+    source_has_microsoft = source_user.ms_oid and source_user.ms_tid
+    dest_has_microsoft = destination_user.ms_oid and destination_user.ms_tid
+    if source_has_microsoft and dest_has_microsoft:
+        conflicts.append("microsoft")
+
+    # If there are overlapping identities, fail the merge
+    if conflicts:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot merge accounts - overlapping identities: {', '.join(conflicts)}. "
+            "Both users have the following identity types linked.",
+        )
+
+    # Prepare merged identities tracking
+    merged_identities = MergedIdentitiesDto()
+
+    # Merge local identity
+    if source_has_local and not dest_has_local:
+        destination_user.local_enabled = source_user.local_enabled
+        destination_user.local_username = source_user.local_username
+        destination_user.local_password_hash = source_user.local_password_hash
+        merged_identities.local = True
+
+    # Merge Google identity
+    if source_has_google and not dest_has_google:
+        destination_user.google_sub = source_user.google_sub
+        destination_user.google_email = source_user.google_email
+        merged_identities.google = True
+
+    # Merge Microsoft identity
+    if source_has_microsoft and not dest_has_microsoft:
+        destination_user.ms_oid = source_user.ms_oid
+        destination_user.ms_tid = source_user.ms_tid
+        destination_user.ms_email = source_user.ms_email
+        merged_identities.microsoft = True
+
+    # If destination email is not verified but source is, update verification
+    if not destination_user.email_verified_at and source_user.email_verified_at:
+        destination_user.email_verified_at = source_user.email_verified_at
+
+    destination_user.updated_at = datetime.now(UTC)
+
+    # Save changes
+    session.add(destination_user)
+    session.commit()
+
+    # Delete the source user
+    session.delete(source_user)
+    session.commit()
+
+    # Log the merge operation
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host if request.client else None
+    audit_service = AuditService(session)
+    audit_service.log_auth(
+        "ACCOUNTS_MERGED",
+        destination_user.id,
+        {
+            "source_user_id": str(merge_dto.source_user_id),
+            "destination_user_id": str(merge_dto.destination_user_id),
+            "merged_identities": merged_identities.model_dump(exclude_none=True),
+            "source_user_email": source_user.email or "",
+            "destination_user_email": destination_user.email or "",
+        },
+        ip_address,
+        user_agent,
+    )
+
+    return MergeAccountsResponseDto(
+        message="Accounts merged successfully",
+        destination_user_id=destination_user.id,
+        merged_identities=merged_identities,
+    )

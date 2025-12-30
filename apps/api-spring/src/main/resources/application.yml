@@ -63,6 +63,22 @@ app:
   sendgrid:
     api-key: ${SENDGRID_API_KEY:}
 
+  oauth:
+    state-secret: ${API_SERVER_OAUTH_KEY:123456789012345}
+    state-expiry-seconds: 300
+
+    google:
+      client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
+      client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET:}
+      authorization-endpoint: https://accounts.google.com/o/oauth2/v2/auth
+      token-endpoint: https://oauth2.googleapis.com/token
+
+    microsoft:
+      client-id: ${MS_OAUTH_CLIENT_ID:}
+      client-secret: ${MS_OAUTH_CLIENT_SECRET:}
+      authorization-endpoint: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+      token-endpoint: https://login.microsoftonline.com/common/oauth2/v2.0/token
+
 # Actuator Configuration
 management:
   endpoints:

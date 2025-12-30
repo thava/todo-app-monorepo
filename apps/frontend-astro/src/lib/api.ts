@@ -1,4 +1,5 @@
 import { config } from './config';
+import type { User } from './types';
 
 export interface ApiError {
   code: string;
@@ -75,8 +76,8 @@ class ApiClient {
   }
 
   // User endpoints
-  async getProfile(accessToken: string) {
-    return this.request('/me', {
+  async getProfile(accessToken: string): Promise<User> {
+    return this.request<User>('/me', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -176,6 +177,47 @@ class ApiClient {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+    });
+  }
+
+  // OAuth endpoints
+  async unlinkGoogle(accessToken: string): Promise<void> {
+    await this.request<void>('/oauth/google/unlink', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async unlinkMicrosoft(accessToken: string): Promise<void> {
+    await this.request<void>('/oauth/microsoft/unlink', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async mergeAccounts(
+    accessToken: string,
+    sourceUserId: string,
+    destinationUserId: string
+  ): Promise<{
+    message: string;
+    destinationUserId: string;
+    mergedIdentities: {
+      local?: boolean;
+      google?: boolean;
+      microsoft?: boolean;
+    };
+  }> {
+    return this.request('/admin/merge-users', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ sourceUserId, destinationUserId }),
     });
   }
 }

@@ -9,9 +9,13 @@ import com.todoapp.domain.repository.UserRepository;
 import com.todoapp.infrastructure.security.CurrentUser;
 import com.todoapp.infrastructure.security.JwtAuthenticationFilter;
 import com.todoapp.interfaces.dto.admin.AuditLogResponseDto;
+import com.todoapp.interfaces.dto.admin.MergeAccountsDto;
+import com.todoapp.interfaces.dto.admin.MergeAccountsResponseDto;
+import com.todoapp.interfaces.dto.admin.MergedIdentitiesDto;
 import com.todoapp.interfaces.dto.admin.MetricsResponseDto;
 import com.todoapp.interfaces.dto.user.UpdateUserDto;
 import com.todoapp.interfaces.dto.user.UserResponseDto;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -122,6 +126,40 @@ public class AdminController {
         ));
     }
 
+    @PostMapping("/merge-users")
+    public ResponseEntity<MergeAccountsResponseDto> mergeUsers(
+            @Valid @RequestBody MergeAccountsDto dto,
+            @CurrentUser JwtAuthenticationFilter.UserPrincipal currentUser,
+            HttpServletRequest request) {
+
+        authorizationService.ensureIsSysAdmin(currentUser.userId());
+
+        String ipAddress = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
+
+        Map<String, Object> result = userService.mergeUsers(
+            dto.sourceUserId(),
+            dto.destinationUserId(),
+            ipAddress,
+            userAgent
+        );
+
+        @SuppressWarnings("unchecked")
+        Map<String, Boolean> mergedIdentitiesMap = (Map<String, Boolean>) result.get("mergedIdentities");
+
+        MergedIdentitiesDto mergedIdentities = new MergedIdentitiesDto(
+            mergedIdentitiesMap.get("local"),
+            mergedIdentitiesMap.get("google"),
+            mergedIdentitiesMap.get("microsoft")
+        );
+
+        return ResponseEntity.ok(new MergeAccountsResponseDto(
+            "Accounts merged successfully",
+            (UUID) result.get("destinationUserId"),
+            mergedIdentities
+        ));
+    }
+
     private UserResponseDto mapToUserResponseDto(UserRepository.User user) {
         return new UserResponseDto(
             user.id(),
@@ -129,6 +167,9 @@ public class AdminController {
             user.fullName(),
             user.role(),
             user.emailVerifiedAt(),
+            user.localUsername(),
+            user.googleEmail(),
+            user.msEmail(),
             user.createdAt(),
             user.updatedAt()
         );

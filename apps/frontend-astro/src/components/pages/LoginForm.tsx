@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '@/lib/store';
+import { OAuthButton } from '@/components/auth/OAuthButton';
 
 export function LoginForm() {
   const { login, isLoading } = useAuthStore();
@@ -34,6 +35,20 @@ export function LoginForm() {
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
+
+        <div className="space-y-3 mb-6">
+          <OAuthButton provider="google" mode="login" />
+          <OAuthButton provider="microsoft" mode="login" />
+        </div>
+
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-surface-primary text-muted">Or continue with email</span>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

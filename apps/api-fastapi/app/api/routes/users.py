@@ -32,6 +32,9 @@ def get_profile(
         role=current_user.role.value,
         email_verified=bool(current_user.email_verified_at),
         email_verified_at=current_user.email_verified_at,
+        local_username=current_user.local_username,
+        google_email=current_user.google_email,
+        ms_email=current_user.ms_email,
     )
 
 
@@ -76,6 +79,9 @@ def update_profile(
         role=current_user.role.value,
         email_verified=bool(current_user.email_verified_at),
         email_verified_at=current_user.email_verified_at,
+        local_username=current_user.local_username,
+        google_email=current_user.google_email,
+        ms_email=current_user.ms_email,
     )
 
 

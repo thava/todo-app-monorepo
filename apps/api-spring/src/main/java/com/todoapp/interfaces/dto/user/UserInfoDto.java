@@ -12,6 +12,9 @@ public record UserInfoDto(
     String fullName,
     Role role,
     Instant emailVerifiedAt,
+    String localUsername,
+    String googleEmail,
+    String msEmail,
     Instant createdAt,
     Instant updatedAt
 ) {

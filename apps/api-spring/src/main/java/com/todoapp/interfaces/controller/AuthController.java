@@ -131,10 +131,13 @@ public class AuthController {
             user.fullName(),
             user.role(),
             user.emailVerifiedAt(),
+            user.localUsername(),
+            user.googleEmail(),
+            user.msEmail(),
             user.createdAt(),
             user.updatedAt()
         );
-        
+
         return new AuthResponseDto(response.accessToken(), response.refreshToken(), userDto);
     }
 }

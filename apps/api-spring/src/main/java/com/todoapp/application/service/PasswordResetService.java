@@ -67,10 +67,17 @@ public class PasswordResetService {
         UserRepository.User updatedUser = new UserRepository.User(
             user.id(),
             user.email(),
-            hashedPassword,
             user.fullName(),
             user.role(),
             user.emailVerifiedAt(),
+            user.localUsername(),
+            hashedPassword,
+            user.localEnabled(),
+            user.googleSub(),
+            user.googleEmail(),
+            user.msOid(),
+            user.msTid(),
+            user.msEmail(),
             user.createdAt(),
             user.updatedAt()
         );

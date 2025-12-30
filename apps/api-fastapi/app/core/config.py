@@ -123,5 +123,21 @@ class Settings(BaseSettings):
     DEMO_PASSWORD: str | None = None
     DEMO_USERS: str | None = None
 
+    # OAuth Configuration
+    GOOGLE_OAUTH_CLIENT_ID: str | None = None
+    GOOGLE_OAUTH_CLIENT_SECRET: str | None = None
+    MS_OAUTH_CLIENT_ID: str | None = None
+    MS_OAUTH_CLIENT_SECRET: str | None = None
+    API_SERVER_OAUTH_KEY: str | None = None
+
+    @field_validator("API_SERVER_OAUTH_KEY", mode="before")
+    @classmethod
+    def validate_oauth_key(cls, v: str | None) -> str:
+        """Validate OAuth state signing key is set."""
+        if not v:
+            # Generate a random secret for development
+            return secrets.token_urlsafe(32)
+        return v
+
 
 settings = Settings()  # type: ignore[call-arg]

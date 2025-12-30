@@ -117,3 +117,45 @@ def require_role(*required_roles: RoleEnum):
         return current_user
 
     return role_checker
+
+
+def get_current_user_id(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+) -> str:
+    """
+    Get current authenticated user ID from JWT token.
+
+    Args:
+        credentials: HTTP Bearer token credentials
+
+    Returns:
+        Current user ID as string
+
+    Raises:
+        HTTPException: If token is invalid
+    """
+    token = credentials.credentials
+
+    try:
+        jwt_service = JWTService()
+        payload = jwt_service.verify_access_token(token)
+        user_id = payload.get("sub")
+
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+            )
+
+        return user_id
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+        )
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )

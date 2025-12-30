@@ -88,6 +88,9 @@ public class UsersController {
             user.fullName(),
             user.role(),
             user.emailVerifiedAt(),
+            user.localUsername(),
+            user.googleEmail(),
+            user.msEmail(),
             user.createdAt(),
             user.updatedAt()
         );

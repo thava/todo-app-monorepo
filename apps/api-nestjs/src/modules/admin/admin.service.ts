@@ -128,6 +128,29 @@ export class AdminService {
       }
     }
 
+    // Handle unlinkLocal
+    if (updateUserDto.unlinkLocal === true) {
+      // Check if user has at least one other identity (Google or Microsoft)
+      const hasGoogleIdentity = !!existingUser.googleSub;
+      const hasMicrosoftIdentity = existingUser.msOid && existingUser.msTid;
+
+      if (!hasGoogleIdentity && !hasMicrosoftIdentity) {
+        throw new BadRequestException(
+          'Cannot unlink local account. You must have at least one other authentication method (Google or Microsoft) linked.'
+        );
+      }
+
+      // Check if local account is already unlinked
+      if (!existingUser.localEnabled || !existingUser.localUsername) {
+        throw new BadRequestException('Local account is not linked');
+      }
+
+      // Unlink local account
+      updateData.localEnabled = false;
+      updateData.localUsername = null;
+      updateData.localPasswordHash = null;
+    }
+
     // If no updates, return user as-is
     if (Object.keys(updateData).length === 0) {
       return this.sanitizeUser(existingUser);

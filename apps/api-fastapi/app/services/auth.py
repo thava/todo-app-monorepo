@@ -504,6 +504,335 @@ class AuthService:
 
         # TODO: Send password changed confirmation email
 
+    async def login_with_google(
+        self,
+        google_sub: str,
+        google_email: str,
+        full_name: str,
+        user_agent: str | None = None,
+        ip_address: str | None = None,
+    ) -> AuthResponseDto:
+        """Login or create user via Google OAuth."""
+        # Look up user ONLY by google_sub (primary identity)
+        statement = select(User).where(User.google_sub == google_sub)
+        user = self.session.exec(statement).first()
+
+        if user:
+            # User exists - check if email has changed and update if needed
+            if user.google_email != google_email:
+                user.google_email = google_email
+                user.updated_at = datetime.now(UTC)
+                self.session.add(user)
+                self.session.commit()
+                self.session.refresh(user)
+
+                self.audit_service.log_auth(
+                    "GOOGLE_EMAIL_UPDATED",
+                    user.id,
+                    {"old_email": user.google_email, "new_email": google_email},
+                    ip_address,
+                    user_agent,
+                )
+
+            # Log successful login
+            self.audit_service.log_auth(
+                "GOOGLE_LOGIN_SUCCESS",
+                user.id,
+                {"google_email": google_email},
+                ip_address,
+                user_agent,
+            )
+        else:
+            # No existing user with this google_sub - create new user
+            user = User(
+                id=uuid.uuid4(),
+                google_sub=google_sub,
+                google_email=google_email,
+                full_name=full_name,
+                role="guest",  # type: ignore[arg-type]
+                email_verified_at=datetime.now(UTC),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+
+            self.session.add(user)
+            self.session.commit()
+            self.session.refresh(user)
+
+            self.audit_service.log_auth(
+                "GOOGLE_REGISTER",
+                user.id,
+                {"google_email": google_email},
+                ip_address,
+                user_agent,
+            )
+
+        return self._create_auth_response(user, user_agent, ip_address)
+
+    async def login_with_microsoft(
+        self,
+        ms_oid: str,
+        ms_tid: str,
+        ms_email: str,
+        full_name: str,
+        user_agent: str | None = None,
+        ip_address: str | None = None,
+    ) -> AuthResponseDto:
+        """Login or create user via Microsoft OAuth."""
+        # Look up user ONLY by (ms_tid, ms_oid) tuple (primary identity)
+        statement = select(User).where(User.ms_oid == ms_oid, User.ms_tid == ms_tid)
+        user = self.session.exec(statement).first()
+
+        if user:
+            # User exists - check if email has changed and update if needed
+            if user.ms_email != ms_email:
+                user.ms_email = ms_email
+                user.updated_at = datetime.now(UTC)
+                self.session.add(user)
+                self.session.commit()
+                self.session.refresh(user)
+
+                self.audit_service.log_auth(
+                    "MICROSOFT_EMAIL_UPDATED",
+                    user.id,
+                    {"old_email": user.ms_email, "new_email": ms_email},
+                    ip_address,
+                    user_agent,
+                )
+
+            # Log successful login
+            self.audit_service.log_auth(
+                "MICROSOFT_LOGIN_SUCCESS",
+                user.id,
+                {"ms_email": ms_email},
+                ip_address,
+                user_agent,
+            )
+        else:
+            # No existing user with this (ms_tid, ms_oid) - create new user
+            user = User(
+                id=uuid.uuid4(),
+                ms_oid=uuid.UUID(ms_oid),
+                ms_tid=uuid.UUID(ms_tid),
+                ms_email=ms_email,
+                full_name=full_name,
+                role="guest",  # type: ignore[arg-type]
+                email_verified_at=datetime.now(UTC),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+
+            self.session.add(user)
+            self.session.commit()
+            self.session.refresh(user)
+
+            self.audit_service.log_auth(
+                "MICROSOFT_REGISTER",
+                user.id,
+                {"ms_email": ms_email},
+                ip_address,
+                user_agent,
+            )
+
+        return self._create_auth_response(user, user_agent, ip_address)
+
+    async def link_google_identity(
+        self,
+        user_id: uuid.UUID,
+        google_sub: str,
+        google_email: str,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> None:
+        """Link Google identity to an existing user."""
+        # Verify user exists
+        statement = select(User).where(User.id == user_id)
+        user = self.session.exec(statement).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        # Check if Google identity is already linked to another user
+        statement = select(User).where(User.google_sub == google_sub)
+        existing_google_user = self.session.exec(statement).first()
+
+        if existing_google_user and existing_google_user.id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This Google account is already linked to another user",
+            )
+
+        # Link Google identity
+        user.google_sub = google_sub
+        user.google_email = google_email
+        if not user.email_verified_at:
+            user.email_verified_at = datetime.now(UTC)
+
+        self.session.add(user)
+        self.session.commit()
+
+        self.audit_service.log_auth(
+            "GOOGLE_LINKED",
+            user_id,
+            {"google_email": google_email},
+            ip_address,
+            user_agent,
+        )
+
+    async def link_microsoft_identity(
+        self,
+        user_id: uuid.UUID,
+        ms_oid: str,
+        ms_tid: str,
+        ms_email: str,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> None:
+        """Link Microsoft identity to an existing user."""
+        # Verify user exists
+        statement = select(User).where(User.id == user_id)
+        user = self.session.exec(statement).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        # Check if Microsoft identity is already linked to another user
+        statement = select(User).where(User.ms_oid == ms_oid, User.ms_tid == ms_tid)
+        existing_ms_user = self.session.exec(statement).first()
+
+        if existing_ms_user and existing_ms_user.id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This Microsoft account is already linked to another user",
+            )
+
+        # Link Microsoft identity
+        user.ms_oid = uuid.UUID(ms_oid)
+        user.ms_tid = uuid.UUID(ms_tid)
+        user.ms_email = ms_email
+        if not user.email_verified_at:
+            user.email_verified_at = datetime.now(UTC)
+
+        self.session.add(user)
+        self.session.commit()
+
+        self.audit_service.log_auth(
+            "MICROSOFT_LINKED",
+            user_id,
+            {"ms_email": ms_email},
+            ip_address,
+            user_agent,
+        )
+
+    async def unlink_google_identity(
+        self,
+        user_id: uuid.UUID,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> None:
+        """Unlink Google identity from a user. Requires at least one other identity to remain."""
+        statement = select(User).where(User.id == user_id)
+        user = self.session.exec(statement).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        if not user.google_sub:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Google account is not linked",
+            )
+
+        # Check if user has at least one other identity
+        has_local_identity = user.local_enabled and user.local_username
+        has_microsoft_identity = user.ms_oid and user.ms_tid
+
+        if not has_local_identity and not has_microsoft_identity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot unlink Google account - user must have at least one identity (local or Microsoft)",
+            )
+
+        # Store email for audit log
+        old_email = user.google_email
+
+        # Unlink Google identity
+        user.google_sub = None
+        user.google_email = None
+        user.updated_at = datetime.now(UTC)
+
+        self.session.add(user)
+        self.session.commit()
+
+        self.audit_service.log_auth(
+            "GOOGLE_UNLINKED",
+            user_id,
+            {"google_email": old_email},
+            ip_address,
+            user_agent,
+        )
+
+    async def unlink_microsoft_identity(
+        self,
+        user_id: uuid.UUID,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> None:
+        """Unlink Microsoft identity from a user. Requires at least one other identity to remain."""
+        statement = select(User).where(User.id == user_id)
+        user = self.session.exec(statement).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        if not user.ms_oid or not user.ms_tid:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Microsoft account is not linked",
+            )
+
+        # Check if user has at least one other identity
+        has_local_identity = user.local_enabled and user.local_username
+        has_google_identity = user.google_sub
+
+        if not has_local_identity and not has_google_identity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot unlink Microsoft account - user must have at least one identity (local or Google)",
+            )
+
+        # Store email for audit log
+        old_email = user.ms_email
+
+        # Unlink Microsoft identity
+        user.ms_oid = None
+        user.ms_tid = None
+        user.ms_email = None
+        user.updated_at = datetime.now(UTC)
+
+        self.session.add(user)
+        self.session.commit()
+
+        self.audit_service.log_auth(
+            "MICROSOFT_UNLINKED",
+            user_id,
+            {"ms_email": old_email},
+            ip_address,
+            user_agent,
+        )
+
     def _create_auth_response(
         self, user: User, user_agent: str | None = None, ip_address: str | None = None
     ) -> AuthResponseDto:
@@ -545,6 +874,9 @@ class AuthService:
                 role=user.role.value,
                 email_verified=bool(user.email_verified_at),
                 email_verified_at=user.email_verified_at,
+                local_username=user.local_username,
+                google_email=user.google_email,
+                ms_email=user.ms_email,
             ),
         )
 

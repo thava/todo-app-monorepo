@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { eq } from 'drizzle-orm';
 import * as schema from '@todo-app/database';
@@ -67,13 +67,52 @@ export class UsersService {
   /**
    * Update user profile
    */
-  async updateProfile(userId: string, data: { fullName?: string }) {
+  async updateProfile(userId: string, data: { fullName?: string; unlinkLocal?: boolean }) {
+    // Prepare update data
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    // Handle fullName update
+    if (data.fullName !== undefined) {
+      updateData.fullName = data.fullName;
+    }
+
+    // Handle unlinkLocal
+    if (data.unlinkLocal === true) {
+      // Get current user to check identities
+      const currentUser = await this.db.query.users.findFirst({
+        where: eq(users.id, userId),
+      });
+
+      if (!currentUser) {
+        throw new NotFoundException('User not found');
+      }
+
+      // Check if user has at least one other identity (Google or Microsoft)
+      const hasGoogleIdentity = !!currentUser.googleSub;
+      const hasMicrosoftIdentity = currentUser.msOid && currentUser.msTid;
+
+      if (!hasGoogleIdentity && !hasMicrosoftIdentity) {
+        throw new BadRequestException(
+          'Cannot unlink local account. You must have at least one other authentication method (Google or Microsoft) linked.'
+        );
+      }
+
+      // Check if local account is already unlinked
+      if (!currentUser.localEnabled || !currentUser.localUsername) {
+        throw new BadRequestException('Local account is not linked');
+      }
+
+      // Unlink local account
+      updateData.localEnabled = false;
+      updateData.localUsername = null;
+      updateData.localPasswordHash = null;
+    }
+
     const [updatedUser] = await this.db
       .update(users)
-      .set({
-        fullName: data.fullName,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(users.id, userId))
       .returning();
 

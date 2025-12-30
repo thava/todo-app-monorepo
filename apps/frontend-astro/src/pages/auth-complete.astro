@@ -1,0 +1,8 @@
+---
+import MainLayout from '@/layouts/MainLayout.astro';
+import { AuthCompletePage } from '@/components/pages/AuthCompletePage';
+---
+
+<MainLayout title="Authentication - TodoGizmo">
+  <AuthCompletePage client:load />
+</MainLayout>

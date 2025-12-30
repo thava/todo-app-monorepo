@@ -73,6 +73,21 @@ class UserInfo(CamelCaseModel):
         description="Email verification timestamp",
         examples=["2025-01-01T00:00:00.000Z"],
     )
+    local_username: str | None = Field(
+        default=None,
+        description="Local username (if local identity exists)",
+        examples=["john.doe"],
+    )
+    google_email: str | None = Field(
+        default=None,
+        description="Google email (if Google identity exists)",
+        examples=["user@gmail.com"],
+    )
+    ms_email: str | None = Field(
+        default=None,
+        description="Microsoft email (if Microsoft identity exists)",
+        examples=["user@outlook.com"],
+    )
 
 
 class AuthResponseDto(CamelCaseModel):
