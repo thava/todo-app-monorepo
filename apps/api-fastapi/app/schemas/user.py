@@ -23,6 +23,11 @@ class UpdateProfileDto(CamelCaseModel):
         description="User full name",
         examples=["Jane Smith"],
     )
+    unlink_local: bool | None = Field(
+        default=None,
+        description="Unlink local account (username/password). Requires at least one other OAuth identity (Google or Microsoft) to be linked.",
+        examples=[True],
+    )
 
 
 class ChangePasswordDto(CamelCaseModel):
@@ -107,6 +112,11 @@ class UpdateUserDto(CamelCaseModel):
         default=None,
         description="Email verification timestamp (ISO 8601 format, 'now' for current time, or null to unverify)",
         examples=["2025-01-01T00:00:00.000Z", "now"],
+    )
+    unlink_local: bool | None = Field(
+        default=None,
+        description="Unlink local account (username/password). Requires at least one other OAuth identity (Google or Microsoft) to be linked.",
+        examples=[True],
     )
 
 

@@ -62,7 +62,7 @@ public class UserService {
 
     @Transactional
     public UserRepository.User updateUser(UUID userId, String email, String password,
-                                         String fullName, Role role, boolean emailVerified) {
+                                         String fullName, Role role, boolean emailVerified, Boolean unlinkLocal) {
         UserRepository.User user = getUserById(userId);
 
         if (email != null && !email.equals(user.localUsername())) {
@@ -71,8 +71,37 @@ public class UserService {
             }
         }
 
-        String newLocalUsername = email != null ? email : user.localUsername();
-        String newPasswordHash = password != null ? passwordEncoder.encode(password) : user.localPasswordHash();
+        // Handle unlinkLocal
+        String newLocalUsername = user.localUsername();
+        String newPasswordHash = user.localPasswordHash();
+        Boolean newLocalEnabled = user.localEnabled();
+
+        if (Boolean.TRUE.equals(unlinkLocal)) {
+            // Check if user has at least one other identity (Google or Microsoft)
+            boolean hasGoogleIdentity = user.googleSub() != null;
+            boolean hasMicrosoftIdentity = user.msOid() != null && user.msTid() != null;
+
+            if (!hasGoogleIdentity && !hasMicrosoftIdentity) {
+                throw new BadRequestException(
+                    "Cannot unlink local account. You must have at least one other authentication method (Google or Microsoft) linked."
+                );
+            }
+
+            // Check if local account is already unlinked
+            if (!user.localEnabled() || user.localUsername() == null) {
+                throw new BadRequestException("Local account is not linked");
+            }
+
+            // Unlink local account
+            newLocalEnabled = false;
+            newLocalUsername = null;
+            newPasswordHash = null;
+        } else {
+            // Normal update flow
+            newLocalUsername = email != null ? email : user.localUsername();
+            newPasswordHash = password != null ? passwordEncoder.encode(password) : user.localPasswordHash();
+        }
+
         String newFullName = fullName != null ? fullName : user.fullName();
         Role newRole = role != null ? role : user.role();
         var newEmailVerifiedAt = emailVerified ?
@@ -87,7 +116,7 @@ public class UserService {
             newEmailVerifiedAt,
             newLocalUsername,
             newPasswordHash,
-            user.localEnabled(),
+            newLocalEnabled,
             user.googleSub(),
             user.googleEmail(),
             user.msOid(),

@@ -49,7 +49,8 @@ public class UsersController {
             dto.password(),
             dto.fullName(),
             null,  // Don't allow changing role through profile update
-            false
+            false,
+            dto.unlinkLocal()
         );
         return ResponseEntity.ok(mapToUserResponseDto(user));
     }
@@ -58,16 +59,17 @@ public class UsersController {
     public ResponseEntity<UserResponseDto> updateProfile(
             @Valid @RequestBody UpdateProfileDto dto,
             @CurrentUser JwtAuthenticationFilter.UserPrincipal currentUser) {
-        
+
         UserRepository.User user = userService.updateUser(
             currentUser.userId(),
             dto.email(),
             dto.password(),
             dto.fullName(),
             null,
-            false
+            false,
+            dto.unlinkLocal()
         );
-        
+
         return ResponseEntity.ok(mapToUserResponseDto(user));
     }
 

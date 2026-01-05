@@ -61,18 +61,19 @@ public class AdminController {
             @PathVariable UUID userId,
             @Valid @RequestBody UpdateUserDto dto,
             @CurrentUser JwtAuthenticationFilter.UserPrincipal currentUser) {
-        
+
         authorizationService.ensureCanModifyUser(currentUser.userId(), userId);
-        
+
         UserRepository.User user = userService.updateUser(
             userId,
             dto.email(),
             dto.password(),
             dto.fullName(),
             dto.role(),
-            dto.emailVerified() != null && dto.emailVerified()
+            dto.emailVerified() != null && dto.emailVerified(),
+            dto.unlinkLocal()
         );
-        
+
         return ResponseEntity.ok(mapToUserResponseDto(user));
     }
 

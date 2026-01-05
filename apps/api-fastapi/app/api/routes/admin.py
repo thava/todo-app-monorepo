@@ -185,6 +185,29 @@ def update_user(
             # Can be datetime or None
             user.email_verified_at = update_dto.email_verified_at
 
+    if update_dto.unlink_local is True:
+        # Check if user has at least one other identity (Google or Microsoft)
+        has_google_identity = bool(user.google_sub)
+        has_microsoft_identity = user.ms_oid and user.ms_tid
+
+        if not has_google_identity and not has_microsoft_identity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot unlink local account. You must have at least one other authentication method (Google or Microsoft) linked.",
+            )
+
+        # Check if local account is already unlinked
+        if not user.local_enabled or not user.local_username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Local account is not linked",
+            )
+
+        # Unlink local account
+        user.local_enabled = False
+        user.local_username = None
+        user.local_password_hash = None
+
     user.updated_at = datetime.now(UTC)
 
     session.add(user)
